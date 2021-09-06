@@ -7,7 +7,7 @@ roslaunch ridgeback_iiwa_gazebo ridgeback_iiwa_gazebo.launch
 roslaunch large_scale_drawing drawing.launch
 ```
 
-sme as
+same as
 
 
 ```sh
