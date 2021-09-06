@@ -22,9 +22,9 @@
 #include <vector>
 
 #define _USE_MATH_DEFINES
-#define TXT_FILE "/input/heart_path_c.txt"
+#define TXT_FILE "/input/heart/heart_path_k.txt"
 #define BACKWARD 0.05
-#define TRANSLATE_UP 0.43
+#define TRANSLATE_UP 0.48
 #define TARGET_SIZE 0.5
 
 using namespace std;
@@ -155,11 +155,11 @@ vector<string> split(string input, char delimiter){
     vector<string> ans;
     stringstream str(input);
     string temp;
-    
+
     while(getline(str, temp, delimiter)){
         ans.push_back(temp);
     }
-    
+
     return ans;
 }
 
@@ -218,7 +218,7 @@ int main (int argc, char **argv)
 	}
 
 
-	iiwa_ros::command::CartesianPoseLinear iiwa_pose_command;
+iiwa_ros::command::CartesianPoseLinear iiwa_pose_command;
   iiwa_ros::state::CartesianPose iiwa_pose_state;
 
 	// for Cartesian Impedance Control
@@ -388,7 +388,7 @@ int main (int argc, char **argv)
 
   string line;
   int stroke_num = 0;
-	bool ready_to_draw = false;
+  bool ready_to_draw = false;
 
   getline(txt, line); // drawing size
   vector<string> tempSplit_ = split(line, ' ');
@@ -415,11 +415,12 @@ int main (int argc, char **argv)
       for (int i = 0 ; i < drawing_stroke.size(); i++)
           splineMotion.spline.segments.push_back(getSplineSegment(drawing_stroke[i], iiwa_msgs::SplineSegment::SPL));
 
+      ROS_INFO("Executing motion ... ");
       // Execute motion
       splineMotionClient.sendGoal(splineMotion);
       splineMotionClient.waitForResult();
       splineMotion.spline.segments.clear();
-      ros::Duration(0.5).sleep();
+      //ros::Duration(0.5).sleep();
 
       ROS_INFO("Move Backward");
       iiwa_control_mode.setPositionControlMode();
@@ -436,7 +437,7 @@ int main (int argc, char **argv)
 			// read drawing
 			vector<string> tempSplit = split(line, ' ');
       y = (stod(tempSplit[0])-0.5) * ratio * TARGET_SIZE;
-      z += (-stod(tempSplit[1])+0.5) * TARGET_SIZE;
+      z = (-stod(tempSplit[1])+0.5) * TARGET_SIZE + TRANSLATE_UP;
 
 
 
@@ -463,16 +464,16 @@ int main (int argc, char **argv)
 				splineMotion.spline.segments.push_back(getSplineSegment(command_cartesian_position.poseStamped.pose, iiwa_msgs::SplineSegment::LIN));
 			}
 
-      drawing_point.position.x = x + 0.001;
+      drawing_point.position.x = x + 0.002;
       drawing_point.position.y = y;
       drawing_point.position.z = z;
       drawing_stroke.push_back(drawing_point); // push the point
 		}
   }
 
-	ROS_INFO("Moving To Wall Position ... ");
+	ROS_INFO("Moving To Init Position ... ");
 	iiwa_control_mode.setPositionControlMode();
-	iiwa_pose_command.setPose(wall_pose.poseStamped);
+	iiwa_pose_command.setPose(init_pose.poseStamped);
 	sleepForMotion(iiwa_time_destination, 2.0);
 
 	spinner.stop();

@@ -29,7 +29,7 @@ static const std::string PLANNING_GROUP = "manipulator";
 static const std::string EE_LINK = "iiwa_link_ee";
 /* RRTConnectkConfigDefault, RRTkConfigDefault, RRTstartkConfigDefault, TRRTkConfigDefault, ESTkConfigDefault
    SBLkConfigDefault, LBKPIECEkConfigDefault, BKPIECEkConfigDefault, PRMkConfigDefault, PRMstarkConfigDefault */
-static const std::string PLANNER_ID = "RRTConnectkConfigDefault";  
+static const std::string PLANNER_ID = "RRTConnectkConfigDefault";
 static const std::string REFERENCE_FRAME = "arm_mount_link";
 
 bool sim;
@@ -144,7 +144,7 @@ int main (int argc, char **argv) {
   //ROS_INFO("Pose Reference Frame: %s", move_group.getPoseReferenceFrame().c_str());
 
   // Moveit Visualization Tool
-  moveit_visual_tools::MoveItVisualTools visual_tools("iiwa_link_0");
+  moveit_visual_tools::MoveItVisualTools visual_tools("odom");
   if (sim == true) {
     visual_tools.deleteAllMarkers();
     visual_tools.trigger();
@@ -387,10 +387,22 @@ int main (int argc, char **argv) {
   }
 
   linear_path.clear();
-  linear_path.push_back(init_cartesian_position.pose);
-  fraction = move_group.computeCartesianPath(linear_path, eef_step, jump_threshold, trajectory);
-  my_plan.trajectory_ = trajectory;
-  move_group.execute(my_plan);  //ros::Duration(0.1).sleep();
+
+  move_group.setStartStateToCurrentState();
+  move_group.setJointValueTarget("iiwa_joint_1", 0.0);
+  move_group.setJointValueTarget("iiwa_joint_2", 0.435332);
+  move_group.setJointValueTarget("iiwa_joint_3", 0.0);
+  move_group.setJointValueTarget("iiwa_joint_4", -1.91986);
+  move_group.setJointValueTarget("iiwa_joint_5", 0.0);
+  move_group.setJointValueTarget("iiwa_joint_6", -0.785399);
+  move_group.setJointValueTarget("iiwa_joint_7", 0.0);
+  success_plan = move_group.plan(my_plan);
+  if (success_plan == MoveItErrorCode::SUCCESS) {
+    motion_done = move_group.execute(my_plan);
+  }
+  ROS_INFO("Moved to the initial position");
+  ros::Duration(3).sleep(); // wait for 3 sec
+
   if (fraction < 0.5) ROS_WARN_STREAM("MOVE INIT ERROR");
 
   cerr<<"Stopping spinner..."<<endl;
