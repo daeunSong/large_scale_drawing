@@ -1,6 +1,10 @@
 # large-scale-drawing
 Large-scale robotic drawing
 
+Clone the *moveit_visual_tools* repository of ours for better visualization result.
+```shell
+git clone -b glab/drawing https://github.com/daeunSong/moveit_visual_tools.git
+```
 
 ```sh
 roslaunch ridgeback_iiwa_gazebo ridgeback_iiwa_gazebo.launch
