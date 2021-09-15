@@ -144,7 +144,7 @@ int main (int argc, char **argv) {
   //ROS_INFO("Pose Reference Frame: %s", move_group.getPoseReferenceFrame().c_str());
 
   // Moveit Visualization Tool
-  moveit_visual_tools::MoveItVisualTools visual_tools("odom");
+  moveit_visual_tools::MoveItVisualTools visual_tools("base_link");
   if (sim == true) {
     visual_tools.deleteAllMarkers();
     visual_tools.trigger();
