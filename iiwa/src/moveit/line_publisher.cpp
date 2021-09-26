@@ -37,7 +37,7 @@ int main( int argc, char** argv )
 
   visualization_msgs::Marker line_strip;
 
-  line_strip.header.frame_id = "/base_link";
+  line_strip.header.frame_id = "/odom";
   line_strip.header.stamp = ros::Time::now();
   line_strip.ns = "points_and_lines";
   line_strip.action = visualization_msgs::Marker::ADD;
@@ -59,8 +59,8 @@ int main( int argc, char** argv )
     line_strip.color.b = color.z;
 
     try {
-      listener.waitForTransform("/base_link", "/iiwa_link_ee", ros::Time(0), ros::Duration(3.0));
-      listener.lookupTransform("/base_link", "/iiwa_link_ee", ros::Time(0), transform);
+      listener.waitForTransform("/odom", "/iiwa_link_ee", ros::Time(0), ros::Duration(3.0));
+      listener.lookupTransform("/odom", "/iiwa_link_ee", ros::Time(0), transform);
     }
     catch (tf::TransformException ex){
             ROS_ERROR("%s",ex.what());
