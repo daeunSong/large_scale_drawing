@@ -6,7 +6,9 @@
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
 #include <moveit_msgs/DisplayTrajectory.h>
-#include <moveit_visual_tools/moveit_visual_tools.h>
+//#include <moveit_visual_tools/moveit_visual_tools.h>
+#include <visualization_msgs/Marker.h>
+#include <std_msgs/Bool.h>
 #include <ros/package.h>
 #include <cmath>
 #include <stdio.h>
@@ -16,7 +18,7 @@
 #include <string>
 #include <vector>
 
-#define TXT_FILE "/input/heart_path_y.txt"
+#define TXT_FILE "/input/heart_path_c.txt"
 #define BACKWARD 0.05
 #define TRANSLATE_UP 0.43
 #define TARGET_SIZE 0.5
@@ -120,6 +122,11 @@ int main (int argc, char **argv) {
   nh.param<std::string>("planner_id", planner_id, PLANNER_ID);
   nh.param<std::string>("reference_frame", reference_frame, REFERENCE_FRAME);
 
+  // to draw lines in rviz
+  ros::Publisher drawing_line = nh.advertise<std_msgs::Bool>("/ready_to_draw", 1);
+  ros::Publisher drawing_color = nh.advertise<geometry_msgs::Point>("/darwing_color", 1);
+  std_msgs::Bool ready;
+
   // Create Move Group
   moveit::planning_interface::MoveGroupInterface move_group(PLANNING_GROUP);
   moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
@@ -143,12 +150,12 @@ int main (int argc, char **argv) {
   ROS_INFO("End effector link: %s", move_group.getEndEffectorLink().c_str());
   //ROS_INFO("Pose Reference Frame: %s", move_group.getPoseReferenceFrame().c_str());
 
-  // Moveit Visualization Tool
-  moveit_visual_tools::MoveItVisualTools visual_tools("base_link");
-  if (sim == true) {
-    visual_tools.deleteAllMarkers();
-    visual_tools.trigger();
-  }
+//  // Moveit Visualization Tool
+//  moveit_visual_tools::MoveItVisualTools visual_tools("base_link");
+//  if (sim == true) {
+//    visual_tools.deleteAllMarkers();
+//    visual_tools.trigger();
+//  }
 
   // TXT file with list of coordinates
   ifstream txt(ros::package::getPath("large_scale_drawing")+TXT_FILE);
@@ -281,6 +288,17 @@ int main (int argc, char **argv) {
   double height = stod(tempSplit_[1]);
   double ratio = width / height;
 
+  // send color
+  // cyan (0, 255, 255)
+  // magenta (255, 0, 255)
+  // yellow (255, 255, 0)
+  // black (0, 0, 0)
+  geometry_msgs::Point color;
+  color.x = 0.0;
+  color.y = 1.0;
+  color.z = 1.0;
+  drawing_color.publish(color);
+
   while(ros::ok() && getline(txt, line) && init){
     if(line == "End"){
       stroke_num++;
@@ -307,18 +325,26 @@ int main (int argc, char **argv) {
       ROS_INFO("Visualizing drawing plan (Cartesian path) (%.2f%% acheived)", fraction * 100.0);
       if (fraction < 0.5) ROS_WARN_STREAM("LINE DRAWING ERROR");
 
+      ready.data = true;
+      drawing_line.publish(ready);
       motion_done = move_group.execute(my_plan); //ros::Duration(0.1).sleep();
-      if (sim == true){   // Rviz drawing visualization
-        if (motion_done == MoveItErrorCode::SUCCESS){
-          visual_tools.publishTrajectoryLine(my_plan.trajectory_, link_model, joint_model_group, rviz_visual_tools::colors::WHITE);
-          visual_tools.trigger();
-        }
-        else {
-          ROS_WARN_STREAM("LINE EXECUTION ERROR");
-          visual_tools.publishTrajectoryLine(my_plan.trajectory_, link_model, joint_model_group, rviz_visual_tools::colors::RED);
-          visual_tools.trigger();
-        }
+
+      if (motion_done == MoveItErrorCode::SUCCESS){\
+        ready.data = false;
+        drawing_line.publish(ready);
       }
+
+//      if (sim == true){   // Rviz drawing visualization
+//        if (motion_done == MoveItErrorCode::SUCCESS){
+//          visual_tools.publishTrajectoryLine(my_plan.trajectory_, link_model, joint_model_group, rviz_visual_tools::colors::WHITE);
+//          visual_tools.trigger();
+//        }
+//        else {
+//          ROS_WARN_STREAM("LINE EXECUTION ERROR");
+//          visual_tools.publishTrajectoryLine(my_plan.trajectory_, link_model, joint_model_group, rviz_visual_tools::colors::RED);
+//          visual_tools.trigger();
+//        }
+//      }
 
       // getCurrentPose ignores the reference frame, thus get the latest position from drawing_stroke
       ROS_INFO("Moving Backward ... \n");
@@ -383,6 +409,7 @@ int main (int argc, char **argv) {
       drawing_point.position.z = z;
 
       drawing_stroke.push_back(drawing_point); // push the point
+//      point_pub.publish(drawing_point);
     }
   }
 
