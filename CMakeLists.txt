@@ -16,7 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 catkin_package()
 
-include_directories(include ${catkin_INCLUDE_DIRS})
+include_directories(iiwa/include ${catkin_INCLUDE_DIRS})
 
 # sim
 add_executable(drawing_moveit iiwa/src/moveit/drawing_moveit.cpp)
