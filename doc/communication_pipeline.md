@@ -1,6 +1,6 @@
-#:frog:Ridgeback + iiwa communication pipeline
+# :frog:Ridgeback + iiwa communication pipeline
 
-###:purple_heart:Used topics:
+### :purple_heart:Used topics:
 
 Format: 
  
@@ -9,7 +9,7 @@ Format:
 1. /iiwa_ridgeback_communicaiton/iiwa
 2. /iiwa_ridgeback_communicaiton/ridgeback
 
-###:purple_heart:Used message
+### :purple_heart:Used message
 
 Type:
 
@@ -34,7 +34,7 @@ meaning:
 
 ridgeback is done doing instruction 4
 
-###:purple_heart:Pipeline
+### :purple_heart:Pipeline
 | Ridgeback | iiwa |
 | ------------- | ------------- | 
 | 0 start | 0 waiting |
