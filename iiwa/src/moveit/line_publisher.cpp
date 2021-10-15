@@ -61,7 +61,7 @@ geometry_msgs::Point LinePublisher::getEEPoint(){
 
 // Set color
 void LinePublisher::setColor(){
-  line_strip.color.a = 1.0;
+  line_strip.color.a = 0.5;
   line_strip.color.r = line_color.x;
   line_strip.color.g = line_color.y;
   line_strip.color.b = line_color.z;
@@ -81,6 +81,9 @@ void LinePublisher::publishLine(float id) {
       line_strip.points.erase(line_strip.points.begin());
       line_strip.points.push_back(p);
     }
+  }
+  else {
+    line_strip.points.clear();
   }
 }
 
