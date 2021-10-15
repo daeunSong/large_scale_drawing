@@ -34,6 +34,6 @@ target_link_libraries(line_publisher ${catkin_LIBRARIES})
 # real
 add_executable(drawing_iiwa iiwa/src/drawing_iiwa.cpp)
 add_dependencies(drawing_iiwa iiwa_msgs_generate_messages_cpp)
-target_link_libraries(drawing_iiwa ${catkin_LIBRARIES})
+target_link_libraries(drawing_iiwa drawingInput ${catkin_LIBRARIES})
 
 
