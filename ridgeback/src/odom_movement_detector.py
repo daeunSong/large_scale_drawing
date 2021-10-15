@@ -23,6 +23,8 @@ class MovementDetector(object):
 
         # create a subscriber for getting new Odometry messages
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_callback)
+        ### real robot working code
+        # rospy.Subscriber("/ridgeback_velocity_controller/odom", Odometry, self.odom_callback)
 
     def get_init_position(self):
         """Get the initial position of the robot."""
@@ -48,6 +50,8 @@ class MovementDetector(object):
         while data_odom is None:
             try:
                 data_odom = rospy.wait_for_message("/odometry/filtered", Odometry, timeout=1)
+                ### real robot working code
+                # data_odom = rospy.wait_for_message("/ridgeback_velocity_controller/odom", Odometry, timeout=1)
             except:
                 rospy.loginfo("Current odom not ready yet, retrying for setting up init pose")
 
