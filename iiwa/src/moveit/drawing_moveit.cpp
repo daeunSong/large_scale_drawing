@@ -1,3 +1,5 @@
+#include "drawing_input.h"
+
 #include "iiwa_ros/iiwa_ros.hpp"
 #include <iiwa_ros/state/cartesian_pose.hpp>
 #include <iiwa_ros/service/control_mode.hpp>
@@ -9,6 +11,7 @@
 //#include <moveit_visual_tools/moveit_visual_tools.h>
 #include <visualization_msgs/Marker.h>
 #include <std_msgs/Bool.h>
+#include <std_msgs/Float64.h>
 #include <ros/package.h>
 #include <cmath>
 #include <stdio.h>
@@ -18,10 +21,7 @@
 #include <string>
 #include <vector>
 
-#define TXT_FILE "/input/heart_path_c.txt"
-#define BACKWARD 0.05
-#define TRANSLATE_UP 0.43
-#define TARGET_SIZE 0.5
+#define BACKWARD 0.06
 
 using namespace std;
 using moveit::planning_interface::MoveItErrorCode;
@@ -35,54 +35,6 @@ static const std::string PLANNER_ID = "RRTConnectkConfigDefault";
 static const std::string REFERENCE_FRAME = "arm_mount_link";
 
 bool sim;
-
-vector<string> split(string input, char delimiter){
-  vector<string> ans;
-  stringstream str(input);
-  string temp;
-
-  while(getline(str, temp, delimiter)){
-      ans.push_back(temp);
-  }
-
-  return ans;
-}
-
-vector<double> calculateNormal(vector<geometry_msgs::Pose> P){
-  vector<double> normal;
-  vector<double> P1, P2;
-
-  // get 2 vectors from 3 points
-  P1.push_back(P[0].position.x - P[1].position.x);
-  P1.push_back(P[0].position.y - P[1].position.y);
-  P1.push_back(P[0].position.z - P[1].position.z);
-  P2.push_back(P[0].position.x - P[2].position.x);
-  P2.push_back(P[0].position.y - P[2].position.y);
-  P2.push_back(P[0].position.z - P[2].position.z);
-
-  cout << "P1: " << P1[0] << " " << P1[1] << " " << P1[2] << endl;
-  cout << "P2: " << P2[0] << " " << P2[1] << " " << P2[2] << endl << endl;
-
-  // calculate normal vector
-  normal.push_back(P1[1]*P2[2] - P1[2]*P2[1]);
-  normal.push_back(P1[2]*P2[0] - P1[0]*P2[2]);
-  normal.push_back(P1[0]*P2[1] - P1[1]*P2[0]);
-
-  // make x of normal vector as 1
-  normal[1] = normal[1]/normal[0];
-  normal[2] = normal[2]/normal[0];
-  normal[0] = 1;
-
-  cout << "DIFF: " << P[0].position.x << " " << P[0].position.y << " " << P[0].position.z << endl;
-
-  // find d (x + y + z + d = 0)
-  double d = -1*P[0].position.x - normal[1]*P[0].position.y - normal[2]*P[0].position.z;
-  normal.push_back(d);
-
-  cout << endl << "NORMAL: " << normal[0] << " " << normal[1] << " " << normal[2] << " " << normal[3] << " " << endl << endl;
-
-  return normal;
-}
 
 int main (int argc, char **argv) {
   // Initialize ROS
@@ -109,12 +61,9 @@ int main (int argc, char **argv) {
   }
 
   std::string movegroup_name, ee_link, planner_id, reference_frame;
-  geometry_msgs::PoseStamped current_cartesian_position, command_cartesian_position, start, end, init_cartesian_position;
-  std::string joint_position_topic, cartesian_position_topic;
-  std::vector<geometry_msgs::Pose> drawing_stroke;
+  geometry_msgs::PoseStamped current_cartesian_position, command_cartesian_position, init_cartesian_position;
   std::vector<geometry_msgs::Pose> linear_path;
   geometry_msgs::Pose drawing_point;
-  geometry_msgs::Pose path_point;
 
   // Dynamic parameters. Last arg is the default value. You can assign these from a launch file.
   nh.param<std::string>("move_group", movegroup_name, PLANNING_GROUP);
@@ -150,20 +99,6 @@ int main (int argc, char **argv) {
   ROS_INFO("End effector link: %s", move_group.getEndEffectorLink().c_str());
   //ROS_INFO("Pose Reference Frame: %s", move_group.getPoseReferenceFrame().c_str());
 
-//  // Moveit Visualization Tool
-//  moveit_visual_tools::MoveItVisualTools visual_tools("base_link");
-//  if (sim == true) {
-//    visual_tools.deleteAllMarkers();
-//    visual_tools.trigger();
-//  }
-
-  // TXT file with list of coordinates
-  ifstream txt(ros::package::getPath("large_scale_drawing")+TXT_FILE);
-  // check if text file is well opened
-  if(!txt.is_open()){
-    cout << "FILE NOT FOUND" << endl;
-    return 1;
-  }
 
   string line;
   bool init = false;
@@ -193,228 +128,335 @@ int main (int argc, char **argv) {
     ROS_INFO("Moved to the initial position");
     ros::Duration(3).sleep(); // wait for 3 sec
 
-
     ROS_INFO("The robot will be now set in Cartesian Impedance Mode");
     iiwa_control_mode.setCartesianImpedanceMode(cartesian_stiffness, cartesian_damping);
     current_cartesian_position = move_group.getCurrentPose(ee_link);
 
-    init_cartesian_position = command_cartesian_position = current_cartesian_position; // save init position
-    drawing_point = current_cartesian_position.pose;      // save end-effector orientation
-
-    // FINDING NORMAL VECTOR TO TRANLSATE INPUT DATA
-    // find distance between wall and set as x-value
-    vector<geometry_msgs::Pose> P;
-    int direction = -1;
-
-    x = current_cartesian_position.pose.position.x + 0.03;
-
-    /*
-    for(int i = 0; i < 3; i++){
-      current_cartesian_position = move_group.getCurrentPose(ee_link);
-      current_cartesian_position.pose.position.x += BACKWARD;
-      linear_path.push_back(current_cartesian_position.pose);
-      fraction = move_group.computeCartesianPath(linear_path, eef_step, jump_threshold, trajectory);
-      my_plan.trajectory_ = trajectory;
-      move_group.execute(my_plan);  //ros::Duration(0.1).sleep();
-      if (fraction < 0.5) ROS_WARN_STREAM("MOVE FORWARD ERROR");
-
-      linear_path.clear();
-
-      ROS_INFO("Detecting the wall");
-      ROS_INFO("Sleeping 3 seconds before starting ... ");
-      ros::Duration(3).sleep(); // wait for 3 sec
-
-      // save the wall's x position
-      current_cartesian_position = move_group.getCurrentPose(ee_link);
-      P.push_back(current_cartesian_position.pose);  // default x position
-
-      // move backward
-      current_cartesian_position.pose.position.x -= 0.01;
-      linear_path.push_back(current_cartesian_position.pose);
-      fraction = move_group.computeCartesianPath(linear_path, eef_step, jump_threshold, trajectory);
-      my_plan.trajectory_ = trajectory;
-      move_group.execute(my_plan);  //ros::Duration(0.1).sleep();
-      if (fraction < 0.5) ROS_WARN_STREAM("MOVE BACKWARD ERROR");
-
-      linear_path.clear();
-      ros::Duration(2).sleep(); // wait for 2 sec
-
-      // move diagonal
-      current_cartesian_position = init_cartesian_position;
-      current_cartesian_position.pose.position.y -= 0.05;
-      current_cartesian_position.pose.position.z += direction*0.02;
-      linear_path.push_back(current_cartesian_position.pose);
-      fraction = move_group.computeCartesianPath(linear_path, eef_step, jump_threshold, trajectory);
-      my_plan.trajectory_ = trajectory;
-      move_group.execute(my_plan);  //ros::Duration(0.1).sleep();
-      if (fraction < 0.5) ROS_WARN_STREAM("MOVE BACKWARD ERROR");
-
-      direction *= -1;
-    }
-    */
-
-//    //sample for simulation
-//    current_cartesian_position.pose.position.x += 0.02;
-//    P.push_back(current_cartesian_position.pose);
-//    current_cartesian_position.pose.position.z += 0.04;
-//    P.push_back(current_cartesian_position.pose);
-//    current_cartesian_position.pose.position.x += 0.007;
-//    current_cartesian_position.pose.position.y += 0.04;
-//    current_cartesian_position.pose.position.z -= 0.04;
-//    P.push_back(current_cartesian_position.pose);
-//
-//    cout << "IIWA_POSITION: " << init_cartesian_position.pose.position.x << " " << init_cartesian_position.pose.position.y << " " << init_cartesian_position.pose.position.z << endl;
-//
-//    normal = calculateNormal(P);
+    // save init position
+    init_cartesian_position = command_cartesian_position = current_cartesian_position;
+    // save end-effector orientation
+    drawing_point = current_cartesian_position.pose;
+    drawing_point.position.x += 0.03;   // 3cm depper
+    drawing_point.position.z -= 0.705;  // height of ridgeback
 
     init = true;
   }
 
-//  cout << "TESTING: " << sqrt(normal[0]*normal[0] + normal[1]*normal[1] + normal[2]+normal[2]) << " " << normal[0] / sqrt(normal[0]*normal[0] + normal[1]*normal[1] + normal[2]+normal[2]) << endl;
-//  double ang = acos(normal[0] / sqrt(normal[0]*normal[0] + normal[1]*normal[1] + normal[2]+normal[2]));
-//  //if(sqrt(normal[0]*normal[0] + normal[1]*normal[1] + normal[2]+normal[2]) < 1) ang = 0;
-//  double y_formula;  // save b from y = az + b as a is 0
-//                     // a = -1*normal[2]/normal[1];
-//  y_formula = -1*(normal[3])/normal[1];
-//
-//  cout << endl << "Y_FORMULA: " <<  y_formula << "ang: " << ang << endl << endl;
-
-  int stroke_num = 0;
   bool ready_to_draw = false;
 
-  getline(txt, line); // drawing size
-  vector<string> tempSplit_ = split(line, ' ');
-  double width = stod(tempSplit_[0]);
-  double height = stod(tempSplit_[1]);
-  double ratio = width / height;
+  // Drawing inputs
+  DrawingInput drawing_c("/input/ewha/","ewha_full_path_",'c',".txt", drawing_point);
+  DrawingInput drawing_m("/input/ewha/","ewha_full_path_",'m',".txt", drawing_point);
+  DrawingInput drawing_y("/input/ewha/","ewha_full_path_",'y',".txt", drawing_point);
+  DrawingInput drawing_k1("/input/ewha/","ewha_full_path_",'k',".txt", drawing_point);
 
   // send color
-  // cyan (0, 255, 255)
-  // magenta (255, 0, 255)
-  // yellow (255, 255, 0)
-  // black (0, 0, 0)
-  geometry_msgs::Point color;
-  color.x = 0.0;
-  color.y = 1.0;
-  color.z = 1.0;
-  drawing_color.publish(color);
+  geometry_msgs::Point cyan, magenta, yellow, black;
+  cyan.x = 0.0; cyan.y = 1.0; cyan.z = 1.0;   // cyan (0, 255, 255)
+  magenta.x = 1.0; magenta.y = 0.0; magenta.z = 1.0;   // magenta (255, 0, 255)
+  yellow.x = 1.0; yellow.y = 1.0; yellow.z = 0.0;   // yellow (255, 255, 0)
+  black.x = 0.0; black.y = 0.0; black.z = 0.0;   // black (0, 0, 0)
 
-  while(ros::ok() && getline(txt, line) && init){
-    if(line == "End"){
-      stroke_num++;
+  int range_num = drawing_c.strokes_by_range.size();
+  int j = 0;
 
-      ROS_INFO("The robot will be now set in Cartesian Impedance Mode");
-      iiwa_control_mode.setCartesianImpedanceMode(cartesian_stiffness, cartesian_damping);
+  while(ros::ok() && init) {
+    char input;
+    for (int i = range_num-1; i >= 0; i--) {
 
-      // move forward first to draw
-      ROS_INFO("Moving Forward ... ");
-      command_cartesian_position.pose = drawing_stroke[0];
-      linear_path.push_back(command_cartesian_position.pose);
-      fraction = move_group.computeCartesianPath(linear_path, eef_step, jump_threshold, trajectory);
-      my_plan.trajectory_ = trajectory;
-      move_group.execute(my_plan);  //ros::Duration(0.1).sleep();
-      if (fraction < 0.5) ROS_WARN_STREAM("MOVE FORWARD ERROR");
+      ///////////////////////////////////////////////////////////////////////
+      // Y
+      j = 0;
+      drawing_color.publish(yellow);
+      for (auto strokes : drawing_y.strokes_by_range[i]) {
+        command_cartesian_position.pose = strokes[0];
+        command_cartesian_position.pose.position.x -= BACKWARD;
 
-      linear_path.clear();
-
-      // draw a stroke
-      ROS_INFO("Drawing %d th stroke ...", stroke_num);
-      fraction = move_group.computeCartesianPath(drawing_stroke, eef_step, jump_threshold, trajectory);
-      my_plan.trajectory_ = trajectory;
-
-      ROS_INFO("Visualizing drawing plan (Cartesian path) (%.2f%% acheived)", fraction * 100.0);
-      if (fraction < 0.5) ROS_WARN_STREAM("LINE DRAWING ERROR");
-
-      ready.data = true;
-      drawing_line.publish(ready);
-      motion_done = move_group.execute(my_plan); //ros::Duration(0.1).sleep();
-
-      if (motion_done == MoveItErrorCode::SUCCESS){\
-        ready.data = false;
-        drawing_line.publish(ready);
-      }
-
-//      if (sim == true){   // Rviz drawing visualization
-//        if (motion_done == MoveItErrorCode::SUCCESS){
-//          visual_tools.publishTrajectoryLine(my_plan.trajectory_, link_model, joint_model_group, rviz_visual_tools::colors::WHITE);
-//          visual_tools.trigger();
-//        }
-//        else {
-//          ROS_WARN_STREAM("LINE EXECUTION ERROR");
-//          visual_tools.publishTrajectoryLine(my_plan.trajectory_, link_model, joint_model_group, rviz_visual_tools::colors::RED);
-//          visual_tools.trigger();
-//        }
-//      }
-
-      // getCurrentPose ignores the reference frame, thus get the latest position from drawing_stroke
-      ROS_INFO("Moving Backward ... \n");
-      command_cartesian_position.pose = drawing_stroke.back();
-
-      // move backward
-      // linear_path.push_back(command_cartesian_position.pose);
-      command_cartesian_position.pose.position.x -= BACKWARD;
-      linear_path.push_back(command_cartesian_position.pose);
-      fraction = move_group.computeCartesianPath(linear_path, eef_step, jump_threshold, trajectory); // loosen the eef_step as moving backward does not need precision
-      my_plan.trajectory_ = trajectory;
-
-      move_group.execute(my_plan);  //ros::Duration(0.1).sleep();
-      if (fraction < 0.5) ROS_WARN_STREAM("MOVE BACKWARD ERROR");
-
-      linear_path.clear();
-      // linear_path.push_back(command_cartesian_position.pose);
-
-      ready_to_draw = false;
-      drawing_stroke.clear();
-    }
-    else{
-      // read drawing
-      vector<string> tempSplit = split(line, ' ');
-      y = (stod(tempSplit[0])-0.5) * ratio * TARGET_SIZE;
-      z = (-stod(tempSplit[1])+0.5) * TARGET_SIZE + TRANSLATE_UP;
-
-//      if(ang != 0){ // if ridgeback is not parallel to the wall
-//        double radius = abs(y_formula - y);
-//        // cout << "CALCULATING: " << ang << " " << sin(ang) << " " << cos(ang) << " " << radius << endl;
-//        x = radius * sin(ang); //+ init_cartesian_position.pose.position.x;
-//        y = radius * cos(ang) + y_formula;
-//      }
-
-      /* make scale smaller
-      y = 0.8*y;
-      z = 0.8*z; */
-
-      if (!ready_to_draw){
-        // move to the ready position (off the wall)
-        ROS_INFO("The robot will be now set in Position Control Mode");
-        iiwa_control_mode.setPositionControlMode();
-
-        ROS_INFO("Moving To Ready Position ... ");
-        command_cartesian_position.pose.position.x = x - BACKWARD;
-        command_cartesian_position.pose.position.y = y;
-        command_cartesian_position.pose.position.z = z;
-
+        // move to ready position
         linear_path.push_back(command_cartesian_position.pose);
         fraction = move_group.computeCartesianPath(linear_path, eef_step, jump_threshold, trajectory);
         my_plan.trajectory_ = trajectory;
         move_group.execute(my_plan);  //ros::Duration(0.1).sleep();
         if (fraction < 0.5) ROS_WARN_STREAM("MOVE READY POSITION ERROR");
-
         linear_path.clear();
-        // linear_path.push_back(command_cartesian_position.pose);
-        ready_to_draw = true;
+
+        // move forward
+        command_cartesian_position.pose = strokes[0];
+        linear_path.push_back(command_cartesian_position.pose);
+        fraction = move_group.computeCartesianPath(linear_path, eef_step, jump_threshold, trajectory);
+        my_plan.trajectory_ = trajectory;
+        move_group.execute(my_plan);  //ros::Duration(0.1).sleep();
+        if (fraction < 0.5) ROS_WARN_STREAM("MOVING FORWARD ERROR");
+        linear_path.clear();
+
+        // draw
+        cout << "Drawing YELLOW " << i << "th range, " << j << "th stroke ... " << endl;
+        fraction = move_group.computeCartesianPath(strokes, eef_step, jump_threshold, trajectory);
+        my_plan.trajectory_ = trajectory;
+        ros::Duration(0.1).sleep();
+        ready.data = true;
+        drawing_line.publish(ready);
+        move_group.execute(my_plan);
+        ros::Duration(0.1).sleep();
+        ready.data = false;
+        drawing_line.publish(ready);
+
+        // move backward
+        command_cartesian_position.pose = strokes.back();
+        command_cartesian_position.pose.position.x -= BACKWARD;
+        linear_path.push_back(command_cartesian_position.pose);
+        fraction = move_group.computeCartesianPath(linear_path, eef_step, jump_threshold, trajectory); // loosen the eef_step as moving backward does not need precision
+        my_plan.trajectory_ = trajectory;
+
+        move_group.execute(my_plan);
+        if (fraction < 0.5) ROS_WARN_STREAM("MOVE BACKWARD ERROR");
+        linear_path.clear();
+        j ++;
       }
 
-      drawing_point.position.x = x;
-      drawing_point.position.y = y;
-      drawing_point.position.z = z;
+      move_group.setStartStateToCurrentState();
+      move_group.setJointValueTarget("iiwa_joint_1", 0.0);
+      move_group.setJointValueTarget("iiwa_joint_2", 0.435332);
+      move_group.setJointValueTarget("iiwa_joint_3", 0.0);
+      move_group.setJointValueTarget("iiwa_joint_4", -1.91986);
+      move_group.setJointValueTarget("iiwa_joint_5", 0.0);
+      move_group.setJointValueTarget("iiwa_joint_6", -0.785399);
+      move_group.setJointValueTarget("iiwa_joint_7", 0.0);
+      success_plan = move_group.plan(my_plan);
+      if (success_plan == MoveItErrorCode::SUCCESS) {
+        motion_done = move_group.execute(my_plan);
+      }
 
-      drawing_stroke.push_back(drawing_point); // push the point
-//      point_pub.publish(drawing_point);
+      ROS_INFO("Moved to the initial position");
+      ros::Duration(3).sleep(); // wait for 3 sec
+
+      if (fraction < 0.5) ROS_WARN_STREAM("MOVE INIT ERROR");
+
+      ///////////////////////////////////////////////////////////////////////
+
+      ///////////////////////////////////////////////////////////////////////
+      // M
+      j = 0;
+      drawing_color.publish(magenta);
+      for (auto strokes : drawing_m.strokes_by_range[i]) {
+        command_cartesian_position.pose = strokes[0];
+        command_cartesian_position.pose.position.x -= BACKWARD;
+
+        // move to ready position
+        linear_path.push_back(command_cartesian_position.pose);
+        fraction = move_group.computeCartesianPath(linear_path, eef_step, jump_threshold, trajectory);
+        my_plan.trajectory_ = trajectory;
+        move_group.execute(my_plan);  //ros::Duration(0.1).sleep();
+        if (fraction < 0.5) ROS_WARN_STREAM("MOVE READY POSITION ERROR");
+        linear_path.clear();
+
+        // move forward
+        command_cartesian_position.pose = strokes[0];
+        linear_path.push_back(command_cartesian_position.pose);
+        fraction = move_group.computeCartesianPath(linear_path, eef_step, jump_threshold, trajectory);
+        my_plan.trajectory_ = trajectory;
+        move_group.execute(my_plan);  //ros::Duration(0.1).sleep();
+        if (fraction < 0.5) ROS_WARN_STREAM("MOVING FORWARD ERROR");
+        linear_path.clear();
+
+        // draw
+        cout << "Drawing MAGENTA " << i << "th range, " << j << "th stroke ... " << endl;
+        fraction = move_group.computeCartesianPath(strokes, eef_step, jump_threshold, trajectory);
+        my_plan.trajectory_ = trajectory;
+        ros::Duration(0.1).sleep();
+        ready.data = true;
+        drawing_line.publish(ready);
+        move_group.execute(my_plan);
+        ros::Duration(0.1).sleep();
+        ready.data = false;
+        drawing_line.publish(ready);
+
+        // move backward
+        command_cartesian_position.pose = strokes.back();
+        command_cartesian_position.pose.position.x -= BACKWARD;
+        linear_path.push_back(command_cartesian_position.pose);
+        fraction = move_group.computeCartesianPath(linear_path, eef_step, jump_threshold, trajectory); // loosen the eef_step as moving backward does not need precision
+        my_plan.trajectory_ = trajectory;
+
+        move_group.execute(my_plan);  //ros::Duration(0.1).sleep();
+        if (fraction < 0.5) ROS_WARN_STREAM("MOVE BACKWARD ERROR");
+        linear_path.clear();
+        j++;
+      }
+
+      move_group.setStartStateToCurrentState();
+      move_group.setJointValueTarget("iiwa_joint_1", 0.0);
+      move_group.setJointValueTarget("iiwa_joint_2", 0.435332);
+      move_group.setJointValueTarget("iiwa_joint_3", 0.0);
+      move_group.setJointValueTarget("iiwa_joint_4", -1.91986);
+      move_group.setJointValueTarget("iiwa_joint_5", 0.0);
+      move_group.setJointValueTarget("iiwa_joint_6", -0.785399);
+      move_group.setJointValueTarget("iiwa_joint_7", 0.0);
+      success_plan = move_group.plan(my_plan);
+      if (success_plan == MoveItErrorCode::SUCCESS) {
+        motion_done = move_group.execute(my_plan);
+      }
+
+      ROS_INFO("Moved to the initial position");
+      ros::Duration(3).sleep(); // wait for 3 sec
+
+      if (fraction < 0.5) ROS_WARN_STREAM("MOVE INIT ERROR");
+
+      ///////////////////////////////////////////////////////////////////////
+
+      ///////////////////////////////////////////////////////////////////////
+      // C
+      j = 0;
+      drawing_color.publish(cyan);
+      for (auto strokes : drawing_c.strokes_by_range[i]) {
+        command_cartesian_position.pose = strokes[0];
+        command_cartesian_position.pose.position.x -= BACKWARD;
+
+        // move to ready position
+        linear_path.push_back(command_cartesian_position.pose);
+        fraction = move_group.computeCartesianPath(linear_path, eef_step, jump_threshold, trajectory);
+        my_plan.trajectory_ = trajectory;
+        move_group.execute(my_plan);  //ros::Duration(0.1).sleep();
+        if (fraction < 0.5) ROS_WARN_STREAM("MOVE READY POSITION ERROR");
+        linear_path.clear();
+
+        // move forward
+        command_cartesian_position.pose = strokes[0];
+        linear_path.push_back(command_cartesian_position.pose);
+        fraction = move_group.computeCartesianPath(linear_path, eef_step, jump_threshold, trajectory);
+        my_plan.trajectory_ = trajectory;
+        move_group.execute(my_plan);  //ros::Duration(0.1).sleep();
+        if (fraction < 0.5) ROS_WARN_STREAM("MOVING FORWARD ERROR");
+        linear_path.clear();
+
+        // draw
+        cout << "Drawing CYAN " << i << "th range, " << j << "th stroke ... " << endl;
+        fraction = move_group.computeCartesianPath(strokes, eef_step, jump_threshold, trajectory);
+        my_plan.trajectory_ = trajectory;
+        ros::Duration(0.1).sleep();
+        ready.data = true;
+        drawing_line.publish(ready);
+        move_group.execute(my_plan);
+        ros::Duration(0.1).sleep();
+        ready.data = false;
+        drawing_line.publish(ready);
+
+        // move backward
+        command_cartesian_position.pose = strokes.back();
+        command_cartesian_position.pose.position.x -= BACKWARD;
+        linear_path.push_back(command_cartesian_position.pose);
+        fraction = move_group.computeCartesianPath(linear_path, eef_step, jump_threshold, trajectory); // loosen the eef_step as moving backward does not need precision
+        my_plan.trajectory_ = trajectory;
+
+        move_group.execute(my_plan);  //ros::Duration(0.1).sleep();
+        if (fraction < 0.5) ROS_WARN_STREAM("MOVE BACKWARD ERROR");
+        linear_path.clear();
+        j++;
+      }
+
+      move_group.setStartStateToCurrentState();
+      move_group.setJointValueTarget("iiwa_joint_1", 0.0);
+      move_group.setJointValueTarget("iiwa_joint_2", 0.435332);
+      move_group.setJointValueTarget("iiwa_joint_3", 0.0);
+      move_group.setJointValueTarget("iiwa_joint_4", -1.91986);
+      move_group.setJointValueTarget("iiwa_joint_5", 0.0);
+      move_group.setJointValueTarget("iiwa_joint_6", -0.785399);
+      move_group.setJointValueTarget("iiwa_joint_7", 0.0);
+      success_plan = move_group.plan(my_plan);
+      if (success_plan == MoveItErrorCode::SUCCESS) {
+        motion_done = move_group.execute(my_plan);
+      }
+
+      ROS_INFO("Moved to the initial position");
+      ros::Duration(3).sleep(); // wait for 3 sec
+
+      if (fraction < 0.5) ROS_WARN_STREAM("MOVE INIT ERROR");
+
+      ///////////////////////////////////////////////////////////////////////
+
+      ///////////////////////////////////////////////////////////////////////
+      // BLACK
+      j = 0;
+      drawing_color.publish(black);
+      for (auto strokes : drawing_k1.strokes_by_range[i]) {
+        command_cartesian_position.pose = strokes[0];
+        command_cartesian_position.pose.position.x -= BACKWARD;
+
+        // move to ready position
+        linear_path.push_back(command_cartesian_position.pose);
+        fraction = move_group.computeCartesianPath(linear_path, eef_step, jump_threshold, trajectory);
+        my_plan.trajectory_ = trajectory;
+        move_group.execute(my_plan);  //ros::Duration(0.1).sleep();
+        if (fraction < 0.5) ROS_WARN_STREAM("MOVE READY POSITION ERROR");
+        linear_path.clear();
+
+        // move forward
+        command_cartesian_position.pose = strokes[0];
+        linear_path.push_back(command_cartesian_position.pose);
+        fraction = move_group.computeCartesianPath(linear_path, eef_step, jump_threshold, trajectory);
+        my_plan.trajectory_ = trajectory;
+        move_group.execute(my_plan);  //ros::Duration(0.1).sleep();
+        if (fraction < 0.5) ROS_WARN_STREAM("MOVING FORWARD ERROR");
+        linear_path.clear();
+
+        // draw
+        cout << "Drawing BLACK " << i << "th range, " << j << "th stroke ... " << endl;
+        fraction = move_group.computeCartesianPath(strokes, eef_step, jump_threshold, trajectory);
+        my_plan.trajectory_ = trajectory;
+        ros::Duration(0.1).sleep();
+        ready.data = true;
+        drawing_line.publish(ready);
+        move_group.execute(my_plan);
+        ros::Duration(0.1).sleep();
+        ready.data = false;
+        drawing_line.publish(ready);
+
+        // move backward
+        command_cartesian_position.pose = strokes.back();
+        command_cartesian_position.pose.position.x -= BACKWARD;
+        linear_path.push_back(command_cartesian_position.pose);
+        fraction = move_group.computeCartesianPath(linear_path, eef_step, jump_threshold, trajectory); // loosen the eef_step as moving backward does not need precision
+        my_plan.trajectory_ = trajectory;
+
+        move_group.execute(my_plan);  //ros::Duration(0.1).sleep();
+        if (fraction < 0.5) ROS_WARN_STREAM("MOVE BACKWARD ERROR");
+        linear_path.clear();
+        j++;
+      }
+
+      move_group.setStartStateToCurrentState();
+      move_group.setJointValueTarget("iiwa_joint_1", 0.0);
+      move_group.setJointValueTarget("iiwa_joint_2", 0.435332);
+      move_group.setJointValueTarget("iiwa_joint_3", 0.0);
+      move_group.setJointValueTarget("iiwa_joint_4", -1.91986);
+      move_group.setJointValueTarget("iiwa_joint_5", 0.0);
+      move_group.setJointValueTarget("iiwa_joint_6", -0.785399);
+      move_group.setJointValueTarget("iiwa_joint_7", 0.0);
+      success_plan = move_group.plan(my_plan);
+      if (success_plan == MoveItErrorCode::SUCCESS) {
+        motion_done = move_group.execute(my_plan);
+      }
+
+      ROS_INFO("Moved to the initial position");
+      ros::Duration(3).sleep(); // wait for 3 sec
+
+      if (fraction < 0.5) ROS_WARN_STREAM("MOVE INIT ERROR");
+
+      ///////////////////////////////////////////////////////////////////////
+
+      // range done
+      // move ridgeback
+      if (i != 0) {
+        float diff = (drawing_c.ranges[i][1] + drawing_c.ranges[i][0])/2 - (drawing_c.ranges[i-1][1] + drawing_c.ranges[i-1][0])/2;
+        cout << "MOVE ridgeback " << diff << " meters in right and press any character with ENTER" << endl;
+        std::cin >> input;
+      }
     }
+
+    init = false;
   }
 
-  linear_path.clear();
-
+  // All done
   move_group.setStartStateToCurrentState();
   move_group.setJointValueTarget("iiwa_joint_1", 0.0);
   move_group.setJointValueTarget("iiwa_joint_2", 0.435332);
@@ -427,6 +469,7 @@ int main (int argc, char **argv) {
   if (success_plan == MoveItErrorCode::SUCCESS) {
     motion_done = move_group.execute(my_plan);
   }
+
   ROS_INFO("Moved to the initial position");
   ros::Duration(3).sleep(); // wait for 3 sec
 

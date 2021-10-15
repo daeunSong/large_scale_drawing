@@ -25,7 +25,7 @@ ADD_LIBRARY(drawingInput
 # sim
 add_executable(drawing_moveit iiwa/src/moveit/drawing_moveit.cpp)
 add_dependencies(drawing_moveit iiwa_msgs_generate_messages_cpp)
-target_link_libraries(drawing_moveit ${catkin_LIBRARIES})
+target_link_libraries(drawing_moveit drawingInput ${catkin_LIBRARIES})
 
 add_executable(line_publisher iiwa/src/moveit/line_publisher.cpp)
 add_dependencies(line_publisher iiwa_msgs_generate_messages_cpp)
