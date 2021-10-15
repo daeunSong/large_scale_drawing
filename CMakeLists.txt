@@ -18,6 +18,10 @@ catkin_package()
 
 include_directories(iiwa/include ${catkin_INCLUDE_DIRS})
 
+ADD_LIBRARY(drawingInput
+  iiwa/src/drawing_input.cpp
+)
+
 # sim
 add_executable(drawing_moveit iiwa/src/moveit/drawing_moveit.cpp)
 add_dependencies(drawing_moveit iiwa_msgs_generate_messages_cpp)
