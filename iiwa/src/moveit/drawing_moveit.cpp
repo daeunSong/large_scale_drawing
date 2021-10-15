@@ -1,10 +1,5 @@
 #include "drawing_input.h"
 
-#include "iiwa_ros/iiwa_ros.hpp"
-#include <iiwa_ros/state/cartesian_pose.hpp>
-#include <iiwa_ros/service/control_mode.hpp>
-#include <iiwa_ros/conversions.hpp>
-
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
 #include <moveit_msgs/DisplayTrajectory.h>
@@ -46,19 +41,6 @@ int main (int argc, char **argv) {
   ros::AsyncSpinner spinner(1);
   spinner.start();
 
-  // iiwa_ros::iiwa_ros my_iiwa;
-  // my_iiwa.init();
-  // for Cartesian Impedance Control
-  iiwa_ros::state::CartesianPose iiwa_pose_state;
-  iiwa_ros::service::ControlModeService iiwa_control_mode;
-  // Low stiffness only along Z.
-  iiwa_msgs::CartesianQuantity cartesian_stiffness = iiwa_ros::conversions::CartesianQuantityFromFloat(1500,1500,350,300,300,300);
-  iiwa_msgs::CartesianQuantity cartesian_damping = iiwa_ros::conversions::CartesianQuantityFromFloat(0.7);
-
-  if(!sim){
-    iiwa_pose_state.init("iiwa");
-    iiwa_control_mode.init("iiwa");
-  }
 
   std::string movegroup_name, ee_link, planner_id, reference_frame;
   geometry_msgs::PoseStamped current_cartesian_position, command_cartesian_position, init_cartesian_position;
@@ -128,8 +110,6 @@ int main (int argc, char **argv) {
     ROS_INFO("Moved to the initial position");
     ros::Duration(3).sleep(); // wait for 3 sec
 
-    ROS_INFO("The robot will be now set in Cartesian Impedance Mode");
-    iiwa_control_mode.setCartesianImpedanceMode(cartesian_stiffness, cartesian_damping);
     current_cartesian_position = move_group.getCurrentPose(ee_link);
 
     // save init position
