@@ -5,7 +5,7 @@ from geometry_msgs.msg import Twist
 from std_msgs.msg import Float64
 
 direction = (0, -1, 0) # x, y, z
-linear_speed = 0.1 # 1 m/s
+linear_speed = 0.01 # 1 m/s
 target_dist = 0.45 # 1 meter
 
 def dist_callback(msg):
