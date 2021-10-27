@@ -27,7 +27,7 @@ static const std::string EE_LINK = "iiwa_link_ee";
 /* RRTConnectkConfigDefault, RRTkConfigDefault, RRTstartkConfigDefault, TRRTkConfigDefault, ESTkConfigDefault
    SBLkConfigDefault, LBKPIECEkConfigDefault, BKPIECEkConfigDefault, PRMkConfigDefault, PRMstarkConfigDefault */
 static const std::string PLANNER_ID = "RRTConnectkConfigDefault";
-static const std::string REFERENCE_FRAME = "arm_mount_link";
+static const std::string REFERENCE_FRAME = "base_link";
 
 bool sim;
 
@@ -117,7 +117,6 @@ int main (int argc, char **argv) {
     // save end-effector orientation
     drawing_point = current_cartesian_position.pose;
     drawing_point.position.x += 0.03;   // 3cm depper
-    drawing_point.position.z -= 0.705;  // height of ridgeback
 
     init = true;
   }
