@@ -81,7 +81,7 @@ void DrawingInput::removeLongLine() {
       geometry_msgs::Pose p2 = this->strokes[i][j];
       double dist = this->getDist(p1, p2);
       if (dist > 0.03) { // 3cm
-        if (stroke.size() > 3)
+        if (stroke.size() > 5)
           new_strokes.push_back(stroke);
         Stroke().swap(stroke);
         stroke.push_back(p2);
@@ -132,7 +132,7 @@ void DrawingInput::splitByRange () {
         stroke.push_back (contact);
 
         // only if stroke size is bigger than 5 points
-        if (stroke.size() > 3) {
+        if (stroke.size() > 5) {
           strokes_by_range[range_index_prev].push_back(stroke);
         }
         Stroke().swap(stroke);

@@ -117,6 +117,7 @@ int main (int argc, char **argv) {
     // save end-effector orientation
     drawing_point = current_cartesian_position.pose;
     drawing_point.position.x += 0.03;   // 3cm depper
+    drawing_point.position.z += 0.05;  // move up
 
     init = true;
   }

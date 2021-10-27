@@ -263,6 +263,7 @@ int main (int argc, char **argv)
   double z = wall_pose.poseStamped.pose.position.z;//0.613500561539;  // HEIGHT
   drawing_point = wall_pose.poseStamped.pose;
   drawing_point.position.x += 0.003;  // 3mm deeper
+  drawing_point.position.z += 0.05;  // up 5cm
 
   ros::Duration(2).sleep(); // wait for 3 sec
 
