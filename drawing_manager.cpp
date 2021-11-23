@@ -70,24 +70,27 @@ int main(int argc, char **argv){
   geometry_msgs::Pose drawing_point;
   drawing_point = iiwa.getCurrentPose().pose;
 
-  DrawingInput drawing_c("/input/ewha/","ewha_full_path_",'c',".txt", drawing_point);
-  DrawingInput drawing_m("/input/ewha/","ewha_full_path_",'m',".txt", drawing_point);
-  DrawingInput drawing_y("/input/ewha/","ewha_full_path_",'y',".txt", drawing_point);
-  DrawingInput drawing_k("/input/ewha/","ewha_full_path_",'k',".txt", drawing_point);
+  // DrawingInput drawing_c("/input/ewha/","ewha_full_path_",'c',".txt", drawing_point);
+  // DrawingInput drawing_m("/input/ewha/","ewha_full_path_",'m',".txt", drawing_point);
+  // DrawingInput drawing_y("/input/ewha/","ewha_full_path_",'y',".txt", drawing_point);
+  DrawingInput drawing_k("/input/university/","university_full_path_",'k',".txt", drawing_point);
 
   //*********** Drawing and moving
-  int range_num = 0;
-  iiwa.drawStrokes(nh, drawing_c, "cyan", range_num++); // iiwa draws
-  
-  std_msgs::String msg;
-  msg.data = "1";
-  ir_pub.publish(msg);  // ridgeback moves
+  int range_num = drawing_k.strokes_by_range.size();
+  for(int i = range_num-1; i >= 0; i--){
+    // cyan, magenta, yellow, black
+    iiwa.drawStrokes(nh, drawing_k, "black", i); // iiwa draws
+    
+    std_msgs::String msg;
+    msg.data = "1";
+    ir_pub.publish(msg);  // ridgeback moves
+    std::cout << "\n\n\n\n IIWA DONE \n\n";
 
-  boost::shared_ptr<std_msgs::String const> ridgeback_done;
-  ridgeback_done = ros::topic::waitForMessage<std_msgs::String>("/iiwa_ridgeback_communicaiton/iiwa",nh);
-  // while(!ridgeback_done) ros::Duration(5).sleep(); // wait for 5 sec
-  
-  // ridgeback_done = 0;
-  std::cout << "\n\n\n\n RIDGEBACK MOVED \n\n";
-  iiwa.drawStrokes(nh, drawing_c, "cyan", range_num++);
+    boost::shared_ptr<std_msgs::String const> ridgeback_done;
+    ridgeback_done = ros::topic::waitForMessage<std_msgs::String>("/iiwa_ridgeback_communicaiton/ridgeback",nh);
+    // while(!ridgeback_done) ros::Duration(5).sleep(); // wait for 5 sec
+    
+    // ridgeback_done = 0;
+    std::cout << "\n\n\n\n RIDGEBACK MOVED \n\n";
+  }
 }
