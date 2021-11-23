@@ -1,22 +1,4 @@
 <launch>
-  <!-- Arguments -->
-  <arg name="open_rviz" default="true"/>
-  <arg name="config" default="drawing_realtime"/>
-  <arg name="scan_topic" default="front/scan" />
-
-  <!-- Run MoveIt! -->
-  <include file="$(find ridgeback_iiwa_moveit)/launch/move_group.launch" />
-
-  <!--- odom -->
-  <include file="$(find ridgeback_navigation)/launch/odom_navigation_demo.launch" />
-
-  <!-- rviz -->
-  <group if="$(arg open_rviz)">
-    <include file="$(find ridgeback_iiwa_viz)/launch/view_robot.launch" >
-      <arg name="config" value="$(arg config)" />
-    </include>
-  </group>
-
   <!-- Parameters to pass to the ROS node -->
   <arg name="move_group" default="manipulator"/>
   <arg name="ee_link" default="iiwa_link_ee"/>

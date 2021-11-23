@@ -66,7 +66,7 @@ int main(int argc, char **argv){
   // DrawingInput drawing_c(DRAWING_PATH,DRAWING_FILENAME,'c',".txt", drawing_point);
   // DrawingInput drawing_m(DRAWING_PATH,DRAWING_FILENAME,'m',".txt", drawing_point);
   // DrawingInput drawing_y(DRAWING_PATH,DRAWING_FILENAME,'y',".txt", drawing_point);
-  DrawingInput drawing_k(DRAWING_PATH,DRAWING_FILENAME,'m',".txt", drawing_point);
+  DrawingInput drawing_k(DRAWING_PATH,DRAWING_FILENAME,'k',".txt", drawing_point);
 
   //*********** Drawing and moving
   int range_num = drawing_k.strokes_by_range.size();
