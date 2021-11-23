@@ -16,7 +16,7 @@ class MoveOdom (object):
     def __init__(self):
         """Initialize an object of the MoveOdom class."""
         # state publisher
-        self.ir_pub = rospy.Publisher('/iiwa_ridgeback_communicaiton/ridgeback', String, queue_size=100)
+        self.ir_pub = rospy.Publisher('/iiwa_ridgeback_communicaiton/ridgeback', String, queue_size=1)
         
         # Target direction and distance in 2D referenced to CURRENT postition
         self.linear_speed = 0.01 #0.01 # 1 m/s
@@ -104,7 +104,7 @@ class MoveOdom (object):
                 self.ir_pub.publish("1")
                 # Get the inital position. This will be a reference point for calculating
                 # the distance moved
-                self.target_position += np.array([new_position.x, new_position.y])
+                self.target_position += self.direction * self.target_dist
 
 
 

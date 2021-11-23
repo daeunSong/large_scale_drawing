@@ -42,5 +42,5 @@ class DrawingMoveit{
     void moveInitPose();
     geometry_msgs::PoseStamped getCurrentPose();
     void savePose();
-    void drawStrokes(ros::NodeHandle &nh, DrawingInput drawing_coor, std::string color_, int range_num);
+    void drawStrokes(ros::NodeHandle &nh, DrawingInput drawing_coor, char color_, int range_num);
 };

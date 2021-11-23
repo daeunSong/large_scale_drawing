@@ -61,14 +61,14 @@ void DrawingMoveit::savePose(){
   this->command_cartesian_position = this->getCurrentPose();
 }
 
-void DrawingMoveit::drawStrokes(ros::NodeHandle &nh, DrawingInput drawing_coor, std::string color_, int range_num){
-  if(color_ == "cyan"){
+void DrawingMoveit::drawStrokes(ros::NodeHandle &nh, DrawingInput drawing_coor, char color_, int range_num){
+  if(color_ == 'c'){
     this->color.x = 0.0; this->color.y = 1.0; this->color.z = 1.0;   // cyan (0, 255, 255)
-  }else if(color_ == "magenta"){
+  }else if(color_ == 'm'){
     this->color.x = 1.0; this->color.y = 0.0; this->color.z = 1.0;   // magenta (255, 0, 255)
-  }else if(color_ == "yellow"){
+  }else if(color_ == 'y'){
     this->color.x = 1.0; this->color.y = 1.0; this->color.z = 0.0;   // yellow (255, 255, 0)
-  }else if(color_ == "black"){
+  }else if(color_ == 'k'){
     this->color.x = 0.0; this->color.y = 0.0; this->color.z = 0.0;   // black (0, 0, 0)
   }
 

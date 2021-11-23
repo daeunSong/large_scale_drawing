@@ -50,10 +50,6 @@ add_executable(line_publisher iiwa/src/moveit/line_publisher.cpp)
 add_dependencies(line_publisher iiwa_msgs_generate_messages_cpp)
 target_link_libraries(line_publisher ${catkin_LIBRARIES})
 
-add_executable(command_pose iiwa/src/moveit/command_pose.cpp)
-add_dependencies(command_pose iiwa_msgs_generate_messages_cpp)
-target_link_libraries(command_pose ${catkin_LIBRARIES})
-
 # real
 add_executable(drawing_iiwa iiwa/src/drawing_iiwa.cpp)
 add_dependencies(drawing_iiwa iiwa_msgs_generate_messages_cpp)
