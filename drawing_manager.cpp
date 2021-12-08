@@ -12,10 +12,14 @@
 #include <string>
 #include <vector>
 
-#define PIXTOMM 0.26458
+// drawing file
 #define DRAWING_PATH "/input/ewha/"
 #define DRAWING_FILENAME "ewha_full_path_"
-#define RANGE 35
+// wall file
+#define WALL_FILENAME "/input/ewha/" //"/wall/bee_hive.obj"
+// drawing parameters
+#define BACKWARD  0.06
+
 
 // Create MoveGroup
 static const std::string PLANNING_GROUP = "manipulator";
@@ -62,6 +66,8 @@ int main(int argc, char **argv){
   // //*********** Divide drawing coordinates by range (drawing inputs)
   geometry_msgs::Pose drawing_point;
   drawing_point = iiwa.getCurrentPose().pose;
+  drawing_point.position.x += 0.03;   // 3cm depper
+  drawing_point.position.z += 0.05;  // move up
 
   // DrawingInput drawing_c(DRAWING_PATH,DRAWING_FILENAME,'c',".txt", drawing_point);
   // DrawingInput drawing_m(DRAWING_PATH,DRAWING_FILENAME,'m',".txt", drawing_point);
@@ -70,18 +76,24 @@ int main(int argc, char **argv){
 
   //*********** Drawing and moving
   int range_num = drawing_k.strokes_by_range.size();
-  for(int i = range_num-1; i >= 0; i--){
-    // c, m, y, k
-    iiwa.drawStrokes(nh, drawing_k, 'm', i); // iiwa draws
-    
-    std_msgs::String msg;
-    msg.data = "1";
-    ir_pub.publish(msg);  // ridgeback moves
-    std::cout << "\n\n\n\n IIWA DONE \n\n";
+  bool init = true;
 
-    boost::shared_ptr<std_msgs::String const> ridgeback_done;
-    ridgeback_done = ros::topic::waitForMessage<std_msgs::String>("/iiwa_ridgeback_communicaiton/ridgeback",nh);
-    
-    std::cout << "\n\n\n\n RIDGEBACK MOVED \n\n";
+  while(ros::ok() && init){
+    for(int i = range_num-1; i >= 0; i--){
+      // c, m, y, k
+      iiwa.drawStrokes(nh, drawing_k, 'm', i); // iiwa draws
+      
+      std_msgs::String msg;
+      msg.data = "1";
+      ir_pub.publish(msg);  // ridgeback moves
+      std::cout << "\n\n\n\n IIWA DONE \n\n";
+
+      boost::shared_ptr<std_msgs::String const> ridgeback_done;
+      ridgeback_done = ros::topic::waitForMessage<std_msgs::String>("/iiwa_ridgeback_communicaiton/ridgeback",nh);
+      
+      std::cout << "\n\n\n\n RIDGEBACK MOVED \n\n";
+    }
+
+    init = false;
   }
 }

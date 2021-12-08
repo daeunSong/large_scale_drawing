@@ -35,6 +35,7 @@ DrawingMoveit::DrawingMoveit(ros::NodeHandle &nh, std::string planning_group, st
 void DrawingMoveit::moveInitPose(){
   // move to init pose
   MoveItErrorCode success_plan = MoveItErrorCode::FAILURE;
+  moveit::planning_interface::MoveGroupInterface::Plan my_plan;
 
   // set all the joint values to the init joint position
   this->move_group->setStartStateToCurrentState();
@@ -45,9 +46,9 @@ void DrawingMoveit::moveInitPose(){
   this->move_group->setJointValueTarget("iiwa_joint_5", 0.0);
   this->move_group->setJointValueTarget("iiwa_joint_6", -0.785399);
   this->move_group->setJointValueTarget("iiwa_joint_7", 0.0);
-  success_plan = this->move_group->plan(this->my_plan);
+  success_plan = this->move_group->plan(my_plan);
   if (success_plan == MoveItErrorCode::SUCCESS) {
-    this->move_group->execute(this->my_plan);
+    this->move_group->execute(my_plan);
   }
   ROS_INFO("Moved to the initial position");
   ros::Duration(3).sleep(); // wait for 3 sec
@@ -57,11 +58,7 @@ geometry_msgs::PoseStamped DrawingMoveit::getCurrentPose(){
   return this->move_group->getCurrentPose(this->ee_link);
 }
 
-void DrawingMoveit::savePose(){
-  this->command_cartesian_position = this->getCurrentPose();
-}
-
-void DrawingMoveit::drawStrokes(ros::NodeHandle &nh, DrawingInput drawing_coor, char color_, int range_num){
+void DrawingMoveit::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_coor, char color_, int range_num){
   if(color_ == 'c'){
     this->color.x = 0.0; this->color.y = 1.0; this->color.z = 1.0;   // cyan (0, 255, 255)
   }else if(color_ == 'm'){
@@ -72,54 +69,59 @@ void DrawingMoveit::drawStrokes(ros::NodeHandle &nh, DrawingInput drawing_coor, 
     this->color.x = 0.0; this->color.y = 0.0; this->color.z = 0.0;   // black (0, 0, 0)
   }
 
+ // drawing commands related
+  geometry_msgs::PoseStamped command_cartesian_position;
+  moveit_msgs::RobotTrajectory trajectory;
+  std::vector<geometry_msgs::Pose> linear_path;
+  moveit::planning_interface::MoveGroupInterface::Plan my_plan;
   std_msgs::Bool ready;
   
   int j = 0;
   double fraction = 0.0;
   this->drawing_color.publish(this->color);
   for (auto strokes : drawing_coor.strokes_by_range[range_num]) {
-    this->command_cartesian_position.pose = strokes[0];
-    this->command_cartesian_position.pose.position.x -= this->backward;
+    command_cartesian_position.pose = strokes[0];
+    command_cartesian_position.pose.position.x -= this->backward;
 
     // move to ready position
-    this->linear_path.push_back(this->command_cartesian_position.pose);
-    fraction = this->move_group->computeCartesianPath(this->linear_path, this->eef_step, this->jump_threshold, this->trajectory);
-    this->my_plan.trajectory_ = this->trajectory;
-    this->move_group->execute(this->my_plan);  //ros::Duration(0.1).sleep();
+    linear_path.push_back(command_cartesian_position.pose);
+    fraction = this->move_group->computeCartesianPath(linear_path, this->eef_step, this->jump_threshold, trajectory);
+    my_plan.trajectory_ = trajectory;
+    this->move_group->execute(my_plan);  //ros::Duration(0.1).sleep();
     if (fraction < 0.5) ROS_WARN_STREAM("MOVE READY POSITION ERROR");
-    this->linear_path.clear();
+    linear_path.clear();
 
     // move forward
-    this->command_cartesian_position.pose = strokes[0];
-    this->linear_path.push_back(this->command_cartesian_position.pose);
-    fraction = this->move_group->computeCartesianPath(this->linear_path, this->eef_step, this->jump_threshold, this->trajectory);
-    this->my_plan.trajectory_ = this->trajectory;
-    this->move_group->execute(this->my_plan);  //ros::Duration(0.1).sleep();
+    command_cartesian_position.pose = strokes[0];
+    linear_path.push_back(command_cartesian_position.pose);
+    fraction = this->move_group->computeCartesianPath(linear_path, this->eef_step, this->jump_threshold, trajectory);
+    my_plan.trajectory_ = trajectory;
+    this->move_group->execute(my_plan);  //ros::Duration(0.1).sleep();
     if (fraction < 0.5) ROS_WARN_STREAM("MOVING FORWARD ERROR");
-    this->linear_path.clear();
+    linear_path.clear();
 
     // draw
     std::cout << "Drawing "<<color_<<" " << range_num << "th range, " << j << "th stroke ... " << std::endl;
-    fraction = this->move_group->computeCartesianPath(strokes, this->eef_step, this->jump_threshold, this->trajectory);
-    this->my_plan.trajectory_ = this->trajectory;
+    fraction = this->move_group->computeCartesianPath(strokes, this->eef_step, this->jump_threshold, trajectory);
+    my_plan.trajectory_ = trajectory;
     ros::Duration(0.1).sleep();
     ready.data = true;
     this->drawing_line.publish(ready);
-    this->move_group->execute(this->my_plan);
+    this->move_group->execute(my_plan);
     ros::Duration(0.1).sleep();
     ready.data = false;
     this->drawing_line.publish(ready);
 
     // move backward
-    this->command_cartesian_position.pose = strokes.back();
-    this->command_cartesian_position.pose.position.x -= this->backward;
-    this->linear_path.push_back(this->command_cartesian_position.pose);
-    fraction = this->move_group->computeCartesianPath(this->linear_path, this->eef_step, this->jump_threshold, this->trajectory); // loosen the eef_step as moving backward does not need precision
-    this->my_plan.trajectory_ = this->trajectory;
+    command_cartesian_position.pose = strokes.back();
+    command_cartesian_position.pose.position.x -= this->backward;
+    linear_path.push_back(command_cartesian_position.pose);
+    fraction = this->move_group->computeCartesianPath(linear_path, this->eef_step, this->jump_threshold, trajectory); // loosen the eef_step as moving backward does not need precision
+    my_plan.trajectory_ = trajectory;
 
-    this->move_group->execute(this->my_plan);
+    this->move_group->execute(my_plan);
     if (fraction < 0.5) ROS_WARN_STREAM("MOVE BACKWARD ERROR");
-    this->linear_path.clear();
+    linear_path.clear();
     
     j++;
   }

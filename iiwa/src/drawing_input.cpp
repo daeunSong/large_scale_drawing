@@ -2,14 +2,25 @@
 
 DrawingInput::DrawingInput(const std::string path, const std::string file_name,
                                   const char color, const std::string file_extension,
-                                  const geometry_msgs::Pose drawing_pose) {
+                                  geometry_msgs::Pose drawing_pose) {
+  std::cout << "\n\n Drawing Input Constructor1 \n\n\n\n";
+
   setFileName(path, file_name, color, file_extension);
   this->drawing_pose = drawing_pose;
+
   readDrawingFile();
   removeLongLine();
   if (this->size[0] > 0.55)
     splitByRange();
 }
+
+// DrawingInput::DrawingInput(const std::string wall_name_, const std::string path, const std::string file_name,
+//                                   const char color, const std::string file_extension,
+//                                   const geometry_msgs::Pose drawing_pose) {
+//   setFileName(path, file_name, color, file_extension);
+//   this->drawing_pose = drawing_pose;
+// }
+
 
 void DrawingInput::setFileName(const std::string path, const std::string file_name,
                                   const char color, const std::string file_extension) {
@@ -30,6 +41,10 @@ void DrawingInput::setDrawingSize (const double ratio) {
   double height = this->target_size;
   this->size.push_back(width);
   this->size.push_back(height);
+}
+
+void DrawingInput::setKDTree(){
+  ROS_WARN_STREAM("SET KD TREE\n");
 }
 
 // read file line by line and save it in strokes

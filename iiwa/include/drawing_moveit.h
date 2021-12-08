@@ -26,12 +26,6 @@ class DrawingMoveit{
     std::string ee_link;
     moveit::planning_interface::MoveGroupInterface *move_group;
 
-    // drawing commands related
-    geometry_msgs::PoseStamped command_cartesian_position;
-    moveit_msgs::RobotTrajectory trajectory;
-    std::vector<geometry_msgs::Pose> linear_path;
-    moveit::planning_interface::MoveGroupInterface::Plan my_plan;
-
     // to draw lines in rviz
     geometry_msgs::Point color;
     ros::Publisher drawing_line;
@@ -41,6 +35,5 @@ class DrawingMoveit{
   
     void moveInitPose();
     geometry_msgs::PoseStamped getCurrentPose();
-    void savePose();
-    void drawStrokes(ros::NodeHandle &nh, DrawingInput drawing_coor, char color_, int range_num);
+    void drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_coor, char color_, int range_num);
 };

@@ -90,7 +90,7 @@ class MoveOdom (object):
         # If distance is less than the target, continue moving the robot
         # Otherwise, stop it (by pubishing `0`)
         dist = self.calculate_distance(self.target_position, new_position)
-        if (iiwa_done):
+        if(iiwa_done):
             if dist > 0.001:
                 self.move.linear.x = self.linear_speed * self.direction[0]
                 self.move.linear.y = self.linear_speed * self.direction[1]
@@ -99,14 +99,10 @@ class MoveOdom (object):
                 print("REACHED!!")
                 self.move.linear.x = 0
                 self.move.linear.y = 0
-                #self.reached = True
+                self.reached = True
                 iiwa_done = 0
                 self.ir_pub.publish("1")
-                # Get the inital position. This will be a reference point for calculating
-                # the distance moved
-                self.target_position += self.direction * self.target_dist
-
-
+                self.target_position += self.direction * self.target_dist # reset target place
 
         self.move_pub.publish(self.move)
 
