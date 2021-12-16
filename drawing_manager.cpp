@@ -16,7 +16,7 @@
 #define DRAWING_PATH "/input/ewha/"
 #define DRAWING_FILENAME "ewha_full_path_"
 // wall file
-#define WALL_FILENAME "/input/ewha/" //"/wall/bee_hive.obj"
+#define WALL_FILENAME "/wall/bee_hive.obj"
 // drawing parameters
 #define BACKWARD  0.06
 
@@ -40,18 +40,7 @@ int main(int argc, char **argv){
 
   //*********** MSG publisher
   ros::Publisher ir_pub = nh.advertise<std_msgs::String>("/iiwa_ridgeback_communicaiton/iiwa", 1);
-  // ros::Subscriber ir_sub = nh.subscribe("/iiwa_ridgeback_communicaiton/ridgeback", 100, chatterCallback);
 
-  //*********** Read drawing file
-  // std::ifstream txt(ros::package::getPath("large_scale_drawing")+DRAWING_PATH+DRAWING_FILENAME+"c.txt");
-  // // check if text file is well opened
-  // if(!txt.is_open()){
-  //     std::cout << "FILE NOT FOUND\n";
-  // }
-
-  // divide drawing coordinates each RANGE
-  // get width in pixel and convert it to mm
-  // divide the width (mm) by range (to know how many times ridgeback needs to move)
 
   //*********** Init iiwa
   std::string movegroup_name, ee_link, planner_id, reference_frame;
@@ -62,8 +51,9 @@ int main(int argc, char **argv){
   nh.param<std::string>("reference_frame", reference_frame, REFERENCE_FRAME);
   // set movegroup parameters and move iiwa to init pose
   DrawingMoveit iiwa(nh, movegroup_name, planner_id, ee_link, reference_frame);
-
-  // //*********** Divide drawing coordinates by range (drawing inputs)
+  
+  
+  //*********** Read drawing file (drawing coordinates divided by range)
   geometry_msgs::Pose drawing_point;
   drawing_point = iiwa.getCurrentPose().pose;
   drawing_point.position.x += 0.03;   // 3cm depper
@@ -72,7 +62,8 @@ int main(int argc, char **argv){
   // DrawingInput drawing_c(DRAWING_PATH,DRAWING_FILENAME,'c',".txt", drawing_point);
   // DrawingInput drawing_m(DRAWING_PATH,DRAWING_FILENAME,'m',".txt", drawing_point);
   // DrawingInput drawing_y(DRAWING_PATH,DRAWING_FILENAME,'y',".txt", drawing_point);
-  DrawingInput drawing_k(DRAWING_PATH,DRAWING_FILENAME,'k',".txt", drawing_point);
+  DrawingInput drawing_k(WALL_FILENAME, DRAWING_PATH, DRAWING_FILENAME, 'k', ".txt", drawing_point);
+
 
   //*********** Drawing and moving
   int range_num = drawing_k.strokes_by_range.size();

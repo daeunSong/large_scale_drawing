@@ -55,7 +55,7 @@ int main (int argc, char **argv) {
 
   // to draw lines in rviz
   ros::Publisher drawing_line = nh.advertise<std_msgs::Bool>("/ready_to_draw", 1);
-  ros::Publisher drawing_color = nh.advertise<geometry_msgs::Point>("/darwing_color", 1);
+  ros::Publisher drawing_color = nh.advertise<geometry_msgs::Point>("/drawing_color", 1);
   std_msgs::Bool ready;
 
   // Create Move Group

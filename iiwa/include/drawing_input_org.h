@@ -10,44 +10,37 @@
 #include <vector>
 #include <cmath>
 
-// #include "KDTree.hpp"
-
-
 #define Stroke std::vector<geometry_msgs::Pose>
 
 class DrawingInput {
   public:
-    DrawingInput(const std::string &, const std::string &,
-                                  const char &, const std::string &,
-                                  const geometry_msgs::Pose &);
-    DrawingInput(const std::string &, const std::string &, const std::string &,
-                                  const char &, const std::string &,
-                                  const geometry_msgs::Pose &);
+    DrawingInput(const std::string path, const std::string file_name,
+                                  const char color, const std::string file_extension,
+                                  geometry_msgs::Pose drawing_pose);
+    DrawingInput(const std::string wall_name_, const std::string path, const std::string file_name,
+                                  const char color, const std::string file_extension,
+                                  const geometry_msgs::Pose drawing_pose);
 
-    // DrawingInput(const std::string &path, const std::string &file_name,
-    //                               const char &color, const std::string &file_extension,
-    //                               const geometry_msgs::Pose &drawing_pose) {
+    // DrawingInput(const std::string path, const std::string file_name,
+    //                               const char color, const std::string file_extension,
+    //                               geometry_msgs::Pose drawing_pose) {
     //   setFileName(path, file_name, color, file_extension);
     //   this->drawing_pose = drawing_pose;
+    //   setKDTree();
+
     //   readDrawingFile();
     //   removeLongLine();
     //   if (this->size[0] > 0.55)
     //     splitByRange();
-    // };
+    // }
 
-    // DrawingInput(const std::string &wall_name_, const std::string &path, const std::string &file_name,
-    //                               const char &color, const std::string &file_extension,
-    //                               const geometry_msgs::Pose &drawing_pose) {
+    // DrawingInput(const std::string wall_name_, const std::string path, const std::string file_name,
+    //                                   const char color, const std::string file_extension,
+    //                                   const geometry_msgs::Pose drawing_pose) {
     //   setFileName(path, file_name, color, file_extension);
-    //   this->wall_name = wall_name_;
     //   this->drawing_pose = drawing_pose;
     //   setKDTree();
-    //   readDrawingFileArb();
-    //   removeLongLine();
-    //   if (this->size[0] > 0.55)
-    //     splitByRange();
-    // };
-
+    // }
 
 
     std::vector<Stroke> strokes;
@@ -73,8 +66,6 @@ class DrawingInput {
 
     // regarding wall file and data
     std::string wall_name;
-    // KDTree kdtree;
-
 
     // functions
     void setFileName(const std::string path, const std::string file_name,
@@ -82,6 +73,7 @@ class DrawingInput {
     void setTargetSize (const double target_size);
     void setDrawingSize (const double ratio);
     void setCanvasRange ();
+    void setKDTree();
     void splitByRange();
     void readDrawingFile ();
     void removeLongLine ();
@@ -90,13 +82,4 @@ class DrawingInput {
     void recenterDrawings();
     bool contains(std::vector<int> vec, const int elem);
     std::vector<std::string> split(const std::string input, const char delimiter);
-
-    // wall related
-    // void setKDTree();
-    // void readDrawingFileArb();
-    // std::tuple<double, point_t> getXAndQuaternion(point_t &pt);
-    // std::tuple<double, point_t> getXAndSurfaceNormal(point_t &pt);
-    // double getVectorSize(point_t &);
-    // point_t getCrossProduct(point_t &, point_t &);
-    // tf::Matrix3x3 getRotationMatrix(point_t &, double);
 };

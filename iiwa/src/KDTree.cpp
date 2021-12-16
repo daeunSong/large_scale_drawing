@@ -11,6 +11,14 @@
  *
  */
 
+#include <algorithm>
+#include <cmath>
+#include <functional>
+#include <iterator>
+#include <limits>
+#include <memory>
+#include <vector>
+#include <iostream> // for print_tree()
 
 #include "KDTree.hpp"
 
@@ -163,26 +171,26 @@ KDNodePtr KDTree::make_tree_n(const pointNormalIndexArr::iterator &begin,  //
     return std::make_shared< KDNode >(*middle, left, right);
 }
 
-// KDTree::KDTree(pointVec point_array, pointVec normal_array) {
-//     leaf = std::make_shared< KDNode >();
-//     // iterators
-//     double x;
-//     pointIndex pi;
-//     pointNormalIndexArr arr;
-//     for (size_t i = 0; i < point_array.size(); i++) {
-//         x = point_array.at(i)[0];
-//         pi = pointIndex({point_array.at(i)[1],point_array.at(i)[2]}, i);
-//         arr.push_back(pointNormalIndex(x, pi, normal_array.at(i)));
-//     }
+KDTree::KDTree(pointVec point_array, pointVec normal_array) {
+    leaf = std::make_shared< KDNode >();
+    // iterators
+    double x;
+    pointIndex pi;
+    pointNormalIndexArr arr;
+    for (size_t i = 0; i < point_array.size(); i++) {
+        x = point_array.at(i)[0];
+        pi = pointIndex({point_array.at(i)[1],point_array.at(i)[2]}, i);
+        arr.push_back(pointNormalIndex(x, pi, normal_array.at(i)));
+    }
 
-//     auto begin = arr.begin();
-//     auto end = arr.end();
+    auto begin = arr.begin();
+    auto end = arr.end();
 
-//     size_t length = arr.size();
-//     size_t level = 0;  // starting
+    size_t length = arr.size();
+    size_t level = 0;  // starting
 
-//     root = KDTree::make_tree_n(begin, end, length, level);
-// }
+    root = KDTree::make_tree_n(begin, end, length, level);
+}
 
 KDNodePtr KDTree::nearest_(   //
     const KDNodePtr &branch,  //
@@ -384,16 +392,11 @@ void KDTree::search_quad_(   //
     const size_t &level,      //
     KDNodeArr &quad
 ) {
-    std::cout << "Search quad_\n";
-    
-    std::cout << "find dist2: ";
     double d = dist2(branch->yz, pt);
     size_t dim = branch->yz.size();
 
     //left-bottom  0 
     if(pt[0] >= branch->yz[0] && pt[1] > branch->yz[1]){
-        std::cout << "lb\n";
-
         if(quad[0]->yz.empty()) quad[0] = branch;
         else{
             if(dist2(quad[0]->yz, pt) > d) quad[0] = branch;
@@ -403,8 +406,6 @@ void KDTree::search_quad_(   //
     //right-bottom 1
     else if(pt[0] < branch->yz[0] && pt[1] >= branch->yz[1])
     {
-        std::cout << "rb\n";
-
         if(quad[1]->yz.empty()) quad[1] = branch;
         else{
             if(dist2(quad[1]->yz, pt) > d) quad[1] = branch;
@@ -413,8 +414,6 @@ void KDTree::search_quad_(   //
 
     //right-top    2
     else if(pt[0] <= branch->yz[0] && pt[1] < branch->yz[1]){
-        std::cout << "rt\n";
-
         if(quad[2]->yz.empty()) quad[2] = branch;
         else{
             if(dist2(quad[2]->yz, pt) > d) quad[2] = branch;
@@ -423,8 +422,6 @@ void KDTree::search_quad_(   //
 
     //left-top     3
     else if(pt[0] > branch->yz[0] && pt[1] <= branch->yz[1]){
-        std::cout << "lt\n";
-
         if(quad[3]->yz.empty()) quad[3] = branch;
         else{
             if(dist2(quad[3]->yz, pt) > d) quad[3] = branch;
@@ -442,19 +439,13 @@ KDNodeArr KDTree::search_quad(const point_t &pt){
     KDNodeArr quad; 
     quad.assign(4, NewKDNodePtr());
 
-    std::cout << "Search quad\n";
     search_quad_(root, pt, level, quad);
 
-    for(auto a : quad){
-        std::cout << a->x << " " << a->yz[0] << " " << a->yz[1] ;
-        std::cout << ", dist: " << dist2(a->yz, pt)<< std::endl;
-    }
     return quad;
 }
 
 KDNodeArr KDTree::search_quad(const point_t &pt, const double &r){
     KDNodeArr nbh = neighborhood(pt, r);
-    // std::cout << nbh.size() << std::endl;
 
     sort_on_dist(nbh.begin(), nbh.end(), pt);
 
@@ -475,7 +466,6 @@ KDNodeArr KDTree::search_quad(const point_t &pt, const double &r){
             if(quad[3]->yz.empty()) {quad[3] = a;} //std::cout << "lt ";}
         }
     }
-    // std::cout << std::endl;
-    
+
     return quad;
 }

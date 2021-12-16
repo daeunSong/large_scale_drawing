@@ -11,10 +11,6 @@
  *
  */
 
-#include <cmath>
-#include <iterator>
-#include <limits>
-#include <iostream> // for print_tree()
 #include <algorithm>
 #include <functional>
 #include <memory>
@@ -115,26 +111,7 @@ class KDTree {
 
    public:
     KDTree() = default;
-    explicit KDTree(pointVec point_array, pointVec normal_array){
-    leaf = std::make_shared< KDNode >();
-    // iterators
-    double x;
-    pointIndex pi;
-    pointNormalIndexArr arr;
-    for (size_t i = 0; i < point_array.size(); i++) {
-        x = point_array.at(i)[0];
-        pi = pointIndex({point_array.at(i)[1],point_array.at(i)[2]}, i);
-        arr.push_back(pointNormalIndex(x, pi, normal_array.at(i)));
-    }
-
-    auto begin = arr.begin();
-    auto end = arr.end();
-
-    size_t length = arr.size();
-    size_t level = 0;  // starting
-
-    root = KDTree::make_tree_n(begin, end, length, level);
-};
+    explicit KDTree(pointVec point_array, pointVec normal_array);
 
    private:
     KDNodePtr nearest_(           //

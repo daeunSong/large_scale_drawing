@@ -9,7 +9,7 @@ LinePublisher::LinePublisher() : nh("") {
 // Init subscriber
 void LinePublisher::initSubscriber() {
   drawing_sub = nh.subscribe("/ready_to_draw", 10, &LinePublisher::drawCallback, this);
-  color_sub = nh.subscribe("/darwing_color", 10, &LinePublisher::colorCallback, this);
+  color_sub = nh.subscribe("/drawing_color", 10, &LinePublisher::colorCallback, this);
 }
 
 // Init publisher

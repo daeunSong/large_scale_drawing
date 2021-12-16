@@ -17,7 +17,7 @@ bool sim;
 DrawingMoveit::DrawingMoveit(ros::NodeHandle &nh, std::string planning_group, std::string planner_id, std::string ee_link_, std::string reference_frame){
   // to draw lines in rviz
   this->drawing_line = nh.advertise<std_msgs::Bool>("/ready_to_draw", 1);
-  this->drawing_color = nh.advertise<geometry_msgs::Point>("/darwing_color", 1);
+  this->drawing_color = nh.advertise<geometry_msgs::Point>("/drawing_color", 1);
   
   // Create Move Group
   this->move_group = new moveit::planning_interface::MoveGroupInterface(planning_group);

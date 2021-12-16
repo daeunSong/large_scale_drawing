@@ -1,25 +1,32 @@
 #include "drawing_input.h"
 
-DrawingInput::DrawingInput(const std::string path, const std::string file_name,
-                                  const char color, const std::string file_extension,
-                                  geometry_msgs::Pose drawing_pose) {
-  std::cout << "\n\n Drawing Input Constructor1 \n\n\n\n";
-
+DrawingInput::DrawingInput(const std::string &path, const std::string &file_name,
+                                  const char &color, const std::string &file_extension,
+                                  const geometry_msgs::Pose &drawing_pose) {
   setFileName(path, file_name, color, file_extension);
   this->drawing_pose = drawing_pose;
-
   readDrawingFile();
   removeLongLine();
   if (this->size[0] > 0.55)
     splitByRange();
 }
 
-// DrawingInput::DrawingInput(const std::string wall_name_, const std::string path, const std::string file_name,
-//                                   const char color, const std::string file_extension,
-//                                   const geometry_msgs::Pose drawing_pose) {
-//   setFileName(path, file_name, color, file_extension);
-//   this->drawing_pose = drawing_pose;
-// }
+DrawingInput::DrawingInput(const std::string &wall_name_, const std::string &path, const std::string &file_name,
+                                  const char &color, const std::string &file_extension,
+                                  const geometry_msgs::Pose &drawing_pose) {
+  setFileName(path, file_name, color, file_extension);
+  this->wall_name = wall_name_;
+  this->drawing_pose = drawing_pose;
+  std::cout << "Drawing Input file setting Done\n";
+  setKDTree();
+  std::cout << "Set KDTree Done\n";
+  readDrawingFileArb();
+  std::cout << "Get Strokes Ready Done \n";
+  removeLongLine();
+  std::cout << "Cut long lines Done\n";
+  if (this->size[0] > 0.55)
+    splitByRange();
+}
 
 
 void DrawingInput::setFileName(const std::string path, const std::string file_name,
@@ -41,10 +48,6 @@ void DrawingInput::setDrawingSize (const double ratio) {
   double height = this->target_size;
   this->size.push_back(width);
   this->size.push_back(height);
-}
-
-void DrawingInput::setKDTree(){
-  ROS_WARN_STREAM("SET KD TREE\n");
 }
 
 // read file line by line and save it in strokes
@@ -207,3 +210,221 @@ std::vector<std::string> DrawingInput::split(const std::string input, const char
   return dat;
 }
 
+// wall related functions below
+void DrawingInput::setKDTree(){
+  pointVec points;
+  pointVec normals;
+  pointVec vns;
+
+  point_t pt;
+  point_t n;
+
+  double min_y=1000, max_y=-1000;
+  double min_z=1000, max_z=-1000;
+
+  bool assigned = false;
+
+  // read file
+  std::ifstream infile(ros::package::getPath("large_scale_drawing")+this->wall_name);
+  std::string line_;  // line read
+  while (std::getline(infile, line_))
+  {
+    std::vector<std::string> line = split(line_, ' ');  // splitted line
+    if (line[0] == "v") { // vertex
+      pt = {std::stod(line[1]), std::stod(line[2]), std::stod(line[3])};
+      points.push_back(pt);
+      if(std::stod(line[2]) < min_y) min_y = std::stod(line[2]);
+      else if (std::stod(line[2]) > max_y) max_y = std::stod(line[2]);
+      if(std::stod(line[3]) < min_z) min_z = std::stod(line[3]);
+      else if (std::stod(line[3]) > max_z) max_z = std::stod(line[3]);
+    }
+    else if (line[0] == "vn") { // vertex normal
+      n = {std::stod(line[1]), std::stod(line[2]), std::stod(line[3])};
+      vns.push_back(n);
+    }
+    if (line[0] == "f") { // face
+      if (!assigned) {  // assign vector
+        normals.assign(points.size(), point_t(3, 0.0));
+        assigned = true;
+      }
+      line.erase(line.begin()); // erase f
+      for (auto element: line) {
+        std::vector<std::string> vvn = split(element, '/');
+        int v_index = std::stoi(vvn[0])-1;
+        int vn_index = std::stoi(vvn[2])-1;
+        normals[v_index] = vns[vn_index];
+      }
+    }
+  }
+
+  // Make y = 0 as the center of the wall coordinate and z = 0 as the bottom of the wall
+  double mid_y = (min_y+max_y)/2;
+  for(int i = 0; i < points.size(); i++){
+    points[i][1] += - mid_y;
+    points[i][2] += - min_z;
+  }
+
+  this->kdtree = KDTree(points, normals);
+}
+
+void DrawingInput::readDrawingFileArb(){
+  std::string line;
+
+  std::ifstream txt(ros::package::getPath("large_scale_drawing")+this->file_name_full);
+  // check if text file is well opened
+  if(!txt.is_open()){
+    std::cout << "FILE NOT FOUND\n";
+  }
+
+  // first line indicates the size
+  std::getline(txt, line); // drawing size
+  std::vector<std::string> tempSplit = split(line, ' ');
+  double width = stod(tempSplit[0]);
+  double height = stod(tempSplit[1]);
+  setDrawingSize(width/height);
+
+  double x, y, z;
+  point_t pt, orientation;
+  Stroke stroke;
+  geometry_msgs::Pose drawing_pose;
+
+  while(std::getline(txt, line)) {
+    if(line == "End") { // stroke finished
+      this->strokes.push_back(stroke);
+      //stroke.clear();
+      Stroke().swap(stroke);
+    }
+    else { // start reading strokes
+      point_t().swap(pt);
+
+      tempSplit = split(line, ' ');
+      y = (-stod(tempSplit[0])+0.5) * this->ratio * this->target_size;
+      z = (-stod(tempSplit[1])+0.5) * this->target_size + this->drawing_pose.position.z;
+      pt.push_back(y); pt.push_back(z);
+
+      // std::cout<< "1) Get Quaternion \n";
+ 
+
+      tie(x, orientation) = getXAndQuaternion(pt);
+
+      drawing_pose.position.x = x;
+      drawing_pose.position.y = y;
+      drawing_pose.position.z = z;
+      drawing_pose.orientation.x = orientation[0];
+      drawing_pose.orientation.y = orientation[1];
+      drawing_pose.orientation.z = orientation[2];
+      drawing_pose.orientation.w = orientation[3];
+      stroke.push_back(drawing_pose);
+
+      // std::cout<< "8) DONE! Got Drawing Pose into stroke\n\n";
+    }
+  }
+}
+
+std::tuple<double, point_t> DrawingInput::getXAndQuaternion(point_t &pt){
+  double x; point_t sn; 
+
+  tie(x, sn) = getXAndSurfaceNormal(pt);
+
+  // std::cout<< "5) Got Surface Normal\n";
+
+  point_t zaxis{0,0,-1};
+
+  // calc cosine
+  double vSize = getVectorSize(sn);
+  if(vSize != 1){
+    for(int i = 0; i < 3; i++){
+      sn[i] = sn[i]/vSize;
+    }
+  }
+  double cosPsi = -1*sn[2];
+
+  // calc axis
+  point_t vecA = getCrossProduct(sn, zaxis);
+  vSize = getVectorSize(vecA);
+  if(vSize != 1){
+    for(int i = 0; i < vecA.size(); i++){
+      vecA[i] = vecA[i]/vSize;
+    }
+  }
+
+  // calc roation matrix
+  tf::Matrix3x3 rotMat = getRotationMatrix(vecA, cosPsi);
+  tf::Quaternion quat;
+  rotMat.getRotation(quat);
+
+  // std::cout<< "6) Got Rotation Matrix\n";
+
+
+  point_t orientation;
+  for(int i = 0; i < 4; i++){
+    orientation.push_back(quat[i]);
+  }
+
+  // std::cout<< "7) Got Orientation\n";
+  
+
+  return {x, orientation};
+}
+
+std::tuple<double, point_t> DrawingInput::getXAndSurfaceNormal(point_t &pt){
+  KDNodeArr quad = this->kdtree.search_quad(pt, 3);
+
+  // std::cout<< "2) Searched Quad \n";
+
+  pointVec coor = {quad[0]->xyz(), quad[1]->xyz(), quad[2]->xyz(), quad[3]->xyz()};
+  pointVec nv = {quad[0]->n, quad[1]->n, quad[2]->n, quad[3]->n};
+
+  // std::cout<< "3) Saved coordinate and normal vector \n";
+
+  double dy = coor[1][1]-pt[0];
+  double dz = coor[2][2]-pt[1];
+
+  double A = (1-dy)*(1-dz);
+  double B = dy*(1-dz);
+  double C = (dy)*(dz);
+  double D = (1-dy)*(dz);
+
+  double fy1 = (coor[1][1]-pt[0])*coor[0][0] + (pt[0]-coor[0][1])*coor[1][0];
+  fy1 = fy1/(coor[1][1]-coor[0][1]);
+  double fy2 = (coor[1][1]-pt[0])*coor[3][0] + (pt[0]-coor[0][1])*coor[2][0];
+  fy2 = fy2/(coor[1][1]-coor[0][1]);
+  double x = (coor[3][2]-pt[1])*fy1 + (pt[1]-coor[0][2])*fy2;
+  x = x/(coor[3][2]-coor[0][2]);
+
+  point_t sn;
+  for(int i = 0; i < 3; i++){
+    sn.push_back(A*nv[0][i]+B*nv[1][i]+C*nv[2][i]+D*nv[3][i]);
+  }
+
+  // std::cout<< "4) Calced SN \n";
+
+  return {x, sn};
+}
+
+double DrawingInput::getVectorSize(point_t &normal){
+  return sqrt(normal[0]*normal[0]+normal[1]*normal[1]+normal[2]*normal[2]);
+}
+
+point_t DrawingInput::getCrossProduct(point_t &a, point_t &b){
+  point_t temp;
+
+  temp.push_back(a[1]*b[2]-a[2]*b[1]);
+  temp.push_back(a[2]*b[0]-a[0]*b[2]);
+  temp.push_back(a[0]*b[1]-a[1]*b[0]);
+
+  return temp;
+}
+
+tf::Matrix3x3 DrawingInput::getRotationMatrix(point_t &axis, double c){
+  double s = sqrt(1-(c*c));
+  double ux = axis[0];
+  double uy = axis[1];
+  double uz = axis[2];
+
+  tf::Matrix3x3 temp(c+ux*ux*(1-c),ux*uy*(1-c)-uz*s,ux*uz*(1-c)+uy*s,
+                        uy*ux*(1-c)+uz*s, c+uy*uy*(1-c), uy*uz*(1-c)-ux*s,
+                        uz*ux*(1-c)-uy*s, uz*uy*(1-c)+ux*s, c+uz*uz*(1-c));
+
+  return temp;
+}
