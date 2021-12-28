@@ -24,7 +24,7 @@ find_package(catkin REQUIRED COMPONENTS
 include_directories(iiwa/include ${catkin_INCLUDE_DIRS})
 
 ADD_LIBRARY(drawingInput
-  iiwa/src/drawing_input_vis.cpp
+  iiwa/src/drawing_input.cpp
 )
 ADD_LIBRARY(drawingMoveit
   iiwa/src/moveit/drawing_moveit.cpp
@@ -48,13 +48,13 @@ ADD_LIBRARY(KDTree
 catkin_package()
 
 # sim
-add_executable(drawing_moveit iiwa/src/moveit/drawing_moveit_vis.cpp)
-add_dependencies(drawing_moveit iiwa_msgs_generate_messages_cpp)
-target_link_libraries(drawing_moveit drawingInput KDTree ${catkin_LIBRARIES}) #
+#add_executable(drawing_moveit iiwa/src/moveit/drawing_moveit.cpp)
+#add_dependencies(drawing_moveit iiwa_msgs_generate_messages_cpp)
+#target_link_libraries(drawing_moveit drawingInput KDTree ${catkin_LIBRARIES}) #
 
-#add_executable(drawing_manager drawing_manager.cpp)
-#add_dependencies(drawing_manager iiwa_msgs_generate_messages_cpp)
-#target_link_libraries(drawing_manager drawingInput drawingMoveit KDTree ${catkin_LIBRARIES}) #
+add_executable(drawing_manager drawing_manager.cpp)
+add_dependencies(drawing_manager iiwa_msgs_generate_messages_cpp)
+target_link_libraries(drawing_manager drawingInput drawingMoveit KDTree ${catkin_LIBRARIES}) #
 
 add_executable(line_publisher iiwa/src/moveit/line_publisher.cpp)
 add_dependencies(line_publisher iiwa_msgs_generate_messages_cpp)
