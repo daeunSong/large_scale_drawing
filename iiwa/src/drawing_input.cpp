@@ -264,6 +264,8 @@ void DrawingInput::setKDTree(){
     points[i][2] += - min_z;
   }
 
+  this->wall_center = -mid_y;
+
   this->kdtree = KDTree(points, normals);
 }
 

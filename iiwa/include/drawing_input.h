@@ -74,6 +74,7 @@ class DrawingInput {
     // regarding wall file and data
     std::string wall_name;
     KDTree kdtree;
+    double wall_center;
 
 
     // functions

@@ -59,20 +59,20 @@ int main(int argc, char **argv){
   drawing_point.position.x += 0.03;   // 3cm depper
   drawing_point.position.z += 0.05;  // move up
 
-  // DrawingInput drawing_c(DRAWING_PATH,DRAWING_FILENAME,'c',".txt", drawing_point);
-  // DrawingInput drawing_m(DRAWING_PATH,DRAWING_FILENAME,'m',".txt", drawing_point);
-  // DrawingInput drawing_y(DRAWING_PATH,DRAWING_FILENAME,'y',".txt", drawing_point);
-  DrawingInput drawing_k(WALL_FILENAME, DRAWING_PATH, DRAWING_FILENAME, 'k', ".txt", drawing_point);
+  DrawingInput drawing_c(WALL_FILENAME, DRAWING_PATH, DRAWING_FILENAME,'c',".txt", drawing_point);
+//  DrawingInput drawing_m(WALL_FILENAME, DRAWING_PATH, DRAWING_FILENAME,'m',".txt", drawing_point);
+//  DrawingInput drawing_y(WALL_FILENAME, DRAWING_PATH, DRAWING_FILENAME,'y',".txt", drawing_point);
+//  DrawingInput drawing_k(WALL_FILENAME, DRAWING_PATH, DRAWING_FILENAME, 'k', ".txt", drawing_point);
 
 
   //*********** Drawing and moving
-  int range_num = drawing_k.strokes_by_range.size();
+  int range_num = drawing_c.strokes_by_range.size();
   bool init = true;
 
   while(ros::ok() && init){
     for(int i = range_num-1; i >= 0; i--){
       // c, m, y, k
-      iiwa.drawStrokes(nh, drawing_k, 'm', i); // iiwa draws
+      iiwa.drawStrokes(nh, drawing_c, 'c', i); // iiwa draws
       
       std_msgs::String msg;
       msg.data = "1";

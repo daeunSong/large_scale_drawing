@@ -18,16 +18,6 @@ DrawingMoveit::DrawingMoveit(ros::NodeHandle &nh, std::string planning_group, st
   // to draw lines in rviz
   this->drawing_line = nh.advertise<std_msgs::Bool>("/ready_to_draw", 1);
   this->drawing_color = nh.advertise<geometry_msgs::Point>("/drawing_color", 1);
-//  this->marker_pub = nh.advertise<visualization_msgs::Marker>("/test", 100);
-//
-//  this->line_strip.header.frame_id = "/base_link";
-//  this->line_strip.header.stamp = ros::Time::now();
-//  this->line_strip.ns = "points_and_lines";
-//  this->line_strip.action = visualization_msgs::Marker::ADD;
-//  this->line_strip.type = visualization_msgs::Marker::LINE_STRIP;
-//
-//  this->line_strip.pose.orientation.w = 1.0;
-//  this->line_strip.scale.x = 0.001;
   
   // Create Move Group
   this->move_group = new moveit::planning_interface::MoveGroupInterface(planning_group);
@@ -39,7 +29,47 @@ DrawingMoveit::DrawingMoveit(ros::NodeHandle &nh, std::string planning_group, st
   this->move_group->setEndEffectorLink(ee_link);
   this->move_group->setPoseReferenceFrame(reference_frame);
 
+  // Initialize the planning scene
+  this->initScene();
+  // Move robot to the initial pose
   this->moveInitPose();
+}
+
+void DrawingMoveit::initScene(){
+  // Define a collision object ROS message.
+  moveit_msgs::CollisionObject collision_object;
+  collision_object.header.frame_id = "odom";
+
+  // The id of the object is used to identify it.
+  collision_object.id = "wall";
+
+  // Define a mesh to add to the world.
+  shapes::Mesh* mesh = shapes::createMeshFromResource("package://large_scale_drawing/wall/bee_hive.obj", {1.0, 1.0, 1.0}); // TODO
+  shape_msgs::Mesh wall_mesh;
+  shapes::ShapeMsg mesh_msg;
+  shapes::constructMsgFromShape(mesh, mesh_msg);
+  wall_mesh = boost::get<shape_msgs::Mesh>(mesh_msg);
+
+  // Define a pose for the box (specified relative to frame_id)
+  geometry_msgs::Pose wall_pose;
+  wall_pose.orientation.w = 1.0;
+  wall_pose.position.x = 0.75;
+  wall_pose.position.y = 0.645; // TODO //drawing_coor.wall_center + (drawing_coor.ranges[0][0]+drawing_coor.ranges[0][1])/2;
+  // 0.869999 + -0.225
+  wall_pose.position.z = 0.0;
+
+  collision_object.meshes.push_back(wall_mesh);
+  collision_object.mesh_poses.push_back(wall_pose);
+  collision_object.operation = collision_object.ADD;
+
+  std::vector<moveit_msgs::CollisionObject> collision_objects;
+  collision_objects.push_back(collision_object);
+
+  // Add the collision object into the world
+  moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
+  ros::Duration(1.0).sleep();
+  planning_scene_interface.addCollisionObjects(collision_objects);
+  ros::Duration(1.0).sleep();
 }
 
 void DrawingMoveit::moveInitPose(){
@@ -85,14 +115,9 @@ void DrawingMoveit::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_coor,
   std::vector<geometry_msgs::Pose> linear_path;
   moveit::planning_interface::MoveGroupInterface::Plan my_plan;
   std_msgs::Bool ready;
-  
   int j = 0;
   double fraction = 0.0;
   this->drawing_color.publish(this->color);
-//  this->line_strip.color.a = 0.5;
-//  this->line_strip.color.r = this->color.x;
-//  this->line_strip.color.g = this->color.y;
-//  this->line_strip.color.b = this->color.z;
   for (auto strokes : drawing_coor.strokes_by_range[range_num]) {
     command_cartesian_position.pose = strokes[0];
     command_cartesian_position.pose.position.x -= this->backward;
@@ -121,20 +146,6 @@ void DrawingMoveit::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_coor,
     ros::Duration(0.1).sleep();
     ready.data = true;
     this->drawing_line.publish(ready);
-
-//    // checkout the calculated result
-//    this->line_strip.header.stamp = ros::Time::now();
-//    int id = 0;
-//    for (int j=0; j < strokes.size(); j++) {
-//      this->line_strip.id = id; id++;
-//      this->line_strip.points.push_back(strokes[j].position);
-//      if(this->line_strip.points.size() > 10){
-//        this->marker_pub.publish(this->line_strip);
-//        this->line_strip.points.erase(this->line_strip.points.begin());
-//        this->line_strip.points.push_back(strokes[j].position);
-//      }
-//    }
-//    ros::Duration(1.0).sleep();
 
     this->move_group->execute(my_plan);
     ros::Duration(0.1).sleep();

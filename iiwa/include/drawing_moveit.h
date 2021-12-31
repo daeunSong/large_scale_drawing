@@ -2,6 +2,7 @@
 
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
+#include <geometric_shapes/shape_operations.h>
 #include <moveit_msgs/DisplayTrajectory.h>
 // #include <moveit_visual_tools/moveit_visual_tools.h>
 #include <visualization_msgs/Marker.h>
@@ -25,6 +26,7 @@ class DrawingMoveit{
     const double eef_step = 0.001; // 0.001
     std::string ee_link;
     moveit::planning_interface::MoveGroupInterface *move_group;
+//    std::vector<moveit_msgs::CollisionObject> collision_objects;
 
     // to draw lines in rviz
     geometry_msgs::Point color;
@@ -33,6 +35,7 @@ class DrawingMoveit{
 
     DrawingMoveit(ros::NodeHandle &nh, std::string planning_group, std::string planner_id, std::string ee_link_, std::string reference_frame);
   
+    void initScene();
     void moveInitPose();
     geometry_msgs::PoseStamped getCurrentPose();
     void drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_coor, char color_, int range_num);
