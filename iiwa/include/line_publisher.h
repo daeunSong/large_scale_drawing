@@ -10,12 +10,14 @@ class LinePublisher {
 
     bool ready_to_draw = false;
     visualization_msgs::Marker line_strip;
+    visualization_msgs::Marker wall;
 
     ros::Publisher marker_pub;
 
     geometry_msgs::Point getEEPoint();
     void setColor();
     void publishLine(float id);
+    void initWall();
 
   private:
     ros::NodeHandle nh;

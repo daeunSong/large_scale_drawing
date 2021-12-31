@@ -29,6 +29,37 @@ void LinePublisher::initMarker() {
   line_strip.scale.x = 0.001;
 }
 
+void LinePublisher::initWall() {
+  visualization_msgs::Marker wall_marker;
+  wall_marker.header.frame_id = "/odom";
+  wall_marker.header.stamp = ros::Time::now();
+  wall_marker.ns = "wall";
+  wall_marker.id = 0;
+  wall_marker.type = visualization_msgs::Marker::MESH_RESOURCE;
+  wall_marker.action = visualization_msgs::Marker::ADD;
+
+  geometry_msgs::Pose wall_pose;
+  wall_pose.orientation.w = 1.0;
+  wall_pose.position.x = 0.85;
+  wall_pose.position.y = 0.645; // TODO //drawing_coor.wall_center + (drawing_coor.ranges[0][0]+drawing_coor.ranges[0][1])/2;
+  // 0.869999 + -0.225
+  wall_pose.position.z = 0.0;
+
+  wall_marker.pose = wall_pose;
+  wall_marker.scale.x = 1.0;
+  wall_marker.scale.y = 1.0;
+  wall_marker.scale.z = 1.0;
+
+  wall_marker.color.a = 1.0; // Don't forget to set the alpha!
+  wall_marker.color.r = 0.933;
+  wall_marker.color.g = 0.933;
+  wall_marker.color.b = 0.933;
+
+  //only if using a MESH_RESOURCE marker type:
+  wall_marker.mesh_resource = "package://large_scale_drawing/wall/bee_hive.obj";
+  marker_pub.publish(wall_marker);
+}
+
 
 // Callback function to know whether if ready to visualize drawing
 void LinePublisher::drawCallback(const std_msgs::Bool::ConstPtr& msg){
@@ -93,8 +124,14 @@ int main( int argc, char** argv ) {
   LinePublisher linePublisher;
   ros::Rate loop_rate(10);
   float id = 0.0;
+  bool init = true;
 
   while (ros::ok()) {
+    if (init) {
+      ros::Duration(5.0).sleep();
+      linePublisher.initWall();
+      init = false;
+    }
     linePublisher.publishLine(id);
 
     id++;

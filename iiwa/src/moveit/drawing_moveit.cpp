@@ -30,7 +30,7 @@ DrawingMoveit::DrawingMoveit(ros::NodeHandle &nh, std::string planning_group, st
   this->move_group->setPoseReferenceFrame(reference_frame);
 
   // Initialize the planning scene
-  this->initScene();
+//  this->initScene();
   // Move robot to the initial pose
   this->moveInitPose();
 }
