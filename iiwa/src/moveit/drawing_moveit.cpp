@@ -35,10 +35,10 @@ DrawingMoveit::DrawingMoveit(ros::NodeHandle &nh, std::string planning_group, st
   this->moveInitPose();
 }
 
-void DrawingMoveit::initScene(){
+void DrawingMoveit::addScene(int j){
   // Define a collision object ROS message.
   moveit_msgs::CollisionObject collision_object;
-  collision_object.header.frame_id = "odom";
+  collision_object.header.frame_id = this->move_group->getPlanningFrame();
 
   // The id of the object is used to identify it.
   collision_object.id = "wall";
@@ -53,8 +53,8 @@ void DrawingMoveit::initScene(){
   // Define a pose for the box (specified relative to frame_id)
   geometry_msgs::Pose wall_pose;
   wall_pose.orientation.w = 1.0;
-  wall_pose.position.x = 0.75;
-  wall_pose.position.y = 0.645; // TODO //drawing_coor.wall_center + (drawing_coor.ranges[0][0]+drawing_coor.ranges[0][1])/2;
+  wall_pose.position.x = 0.83; // TODO
+  wall_pose.position.y = 0.869999 - 0.225 + (0.45 * (j-1)); // 0.645; // TODO //drawing_coor.wall_center + (drawing_coor.ranges[0][0]+drawing_coor.ranges[0][1])/2;
   // 0.869999 + -0.225
   wall_pose.position.z = 0.0;
 
@@ -67,9 +67,10 @@ void DrawingMoveit::initScene(){
 
   // Add the collision object into the world
   moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
-  ros::Duration(1.0).sleep();
+  ros::Duration(3.0).sleep();
+  ROS_INFO("Collision object added");
   planning_scene_interface.addCollisionObjects(collision_objects);
-  ros::Duration(1.0).sleep();
+  ros::Duration(3.0).sleep();
 }
 
 void DrawingMoveit::moveInitPose(){
@@ -108,6 +109,8 @@ void DrawingMoveit::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_coor,
   }else if(color_ == 'k'){
     this->color.x = 0.0; this->color.y = 0.0; this->color.z = 0.0;   // black (0, 0, 0)
   }
+
+  this->addScene(drawing_coor.strokes_by_range.size() - range_num);
 
  // drawing commands related
   geometry_msgs::PoseStamped command_cartesian_position;

@@ -392,7 +392,7 @@ std::tuple<double, point_t> DrawingInput::getXAndSurfaceNormal(point_t &pt){
   double fy2 = (coor[1][1]-pt[0])*coor[3][0] + (pt[0]-coor[0][1])*coor[2][0];
   fy2 = fy2/(coor[1][1]-coor[0][1]);
   double x = (coor[3][2]-pt[1])*fy1 + (pt[1]-coor[0][2])*fy2;
-  x = x/(coor[3][2]-coor[0][2]) + 0.72;
+  x = x/(coor[3][2]-coor[0][2]) + 0.82;
 
   point_t sn;
   for(int i = 0; i < 3; i++){

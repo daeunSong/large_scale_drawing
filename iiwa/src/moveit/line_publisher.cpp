@@ -40,7 +40,7 @@ void LinePublisher::initWall() {
 
   geometry_msgs::Pose wall_pose;
   wall_pose.orientation.w = 1.0;
-  wall_pose.position.x = 0.85;
+  wall_pose.position.x = 0.83;
   wall_pose.position.y = 0.645; // TODO //drawing_coor.wall_center + (drawing_coor.ranges[0][0]+drawing_coor.ranges[0][1])/2;
   // 0.869999 + -0.225
   wall_pose.position.z = 0.0;

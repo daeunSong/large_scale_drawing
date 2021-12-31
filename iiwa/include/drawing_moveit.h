@@ -35,7 +35,7 @@ class DrawingMoveit{
 
     DrawingMoveit(ros::NodeHandle &nh, std::string planning_group, std::string planner_id, std::string ee_link_, std::string reference_frame);
   
-    void initScene();
+    void addScene(int j);
     void moveInitPose();
     geometry_msgs::PoseStamped getCurrentPose();
     void drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_coor, char color_, int range_num);
