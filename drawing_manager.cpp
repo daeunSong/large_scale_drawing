@@ -5,6 +5,7 @@
 
 #include <geometry_msgs/Pose.h>
 #include <std_msgs/String.h>
+#include <std_msgs/Float64MultiArray.h>
 #include "boost/shared_ptr.hpp"
 
 #include <fstream>
@@ -42,7 +43,7 @@ int main(int argc, char **argv){
   ros::Publisher ir_pub = nh.advertise<std_msgs::String>("/iiwa_ridgeback_communicaiton/iiwa", 1);
 
 
-  //*********** Init iiwa
+  //*********** Init IIWA
   std::string movegroup_name, ee_link, planner_id, reference_frame;
   // dynamic parameters. Last arg is the default value. You can assign these from a launch file.
   nh.param<std::string>("move_group", movegroup_name, PLANNING_GROUP);
@@ -52,7 +53,18 @@ int main(int argc, char **argv){
   // set movegroup parameters and move iiwa to init pose
   DrawingMoveit iiwa(nh, movegroup_name, planner_id, ee_link, reference_frame);
   
-  
+  //*********** Init Ridgeback (get drawing split ranges)
+  bool init = true;
+  boost::shared_ptr<std_msgs::Float64MultiArray const> drawing_ranges;
+
+  ROS_INFO("Waiting for drawing ranges");
+  while(ros::ok() && init){
+    drawing_ranges = ros::topic::waitForMessage<std_msgs::Float64MultiArray>("/iiwa_ridgeback_communicaiton/drawing_range",nh);
+    init = false;
+  }
+  std_msgs::Float64MultiArray ranges = *drawing_ranges;
+  ROS_INFO("Got drawing_range from Ridgeback");
+
   //*********** Read drawing file (drawing coordinates divided by range)
   geometry_msgs::Pose drawing_point;
   drawing_point = iiwa.getCurrentPose().pose;
@@ -62,27 +74,44 @@ int main(int argc, char **argv){
   // DrawingInput drawing_c(DRAWING_PATH,DRAWING_FILENAME,'c',".txt", drawing_point);
   // DrawingInput drawing_m(DRAWING_PATH,DRAWING_FILENAME,'m',".txt", drawing_point);
   // DrawingInput drawing_y(DRAWING_PATH,DRAWING_FILENAME,'y',".txt", drawing_point);
-  DrawingInput drawing_k(WALL_FILENAME, DRAWING_PATH, DRAWING_FILENAME, 'k', ".txt", drawing_point);
+  DrawingInput drawing_k(WALL_FILENAME, ranges, DRAWING_PATH, DRAWING_FILENAME, 'k', ".txt", drawing_point);
 
+  ROS_INFO("Drawing Inputs Ready!");
 
   //*********** Drawing and moving
   int range_num = drawing_k.strokes_by_range.size();
-  bool init = true;
+  init = true;
 
   while(ros::ok() && init){
     for(int i = range_num-1; i >= 0; i--){
-      // c, m, y, k
-      iiwa.drawStrokes(nh, drawing_k, 'm', i); // iiwa draws
+      // get ridgeback's position and orientation
+      ROS_INFO("Waiting for ridgeback's position and orientation");
+      boost::shared_ptr<geometry_msgs::Pose const> ri_poses;
+      ri_poses = ros::topic::waitForMessage<geometry_msgs::Pose>("/iiwa_ridgeback_communicaiton/ridgeback/pose",nh);
+      geometry_msgs::Pose poses = *ri_poses;
+
+      // relocate drawing coordinate according to ridgeback's location
+      ROS_INFO("Relocate drawing coordinate according to ridgeback's pose");
+      drawing_k.relocateDrawingsArb(poses, i);
+
+      // iiwa draw (color: c, m, y, k)
+      ROS_INFO("IIWA Drawing Start");
+      iiwa.drawStrokes(nh, drawing_k, 'm', i);
       
-      std_msgs::String msg;
-      msg.data = "1";
-      ir_pub.publish(msg);  // ridgeback moves
+      // finished iiwa drawing make ridgeback move
+      std_msgs::String iiwa_state;
+      iiwa_state.data = "0";
+      ir_pub.publish(iiwa_state);  // ridgeback moves
       std::cout << "\n\n\n\n IIWA DONE \n\n";
 
+      // wait for ridgeback to finish moving
+      ROS_INFO("Waiting for ridgeback to finish moving");
       boost::shared_ptr<std_msgs::String const> ridgeback_done;
       ridgeback_done = ros::topic::waitForMessage<std_msgs::String>("/iiwa_ridgeback_communicaiton/ridgeback",nh);
       
       std::cout << "\n\n\n\n RIDGEBACK MOVED \n\n";
+      iiwa_state.data = "1";
+      ir_pub.publish(iiwa_state);  // tell ridgeback to stop moving
     }
 
     init = false;

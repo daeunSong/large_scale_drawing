@@ -1,4 +1,6 @@
-#include "drawing_input.h"
+#include "drawing_input_range.h"
+
+#define PI 3.14159265
 
 DrawingInput::DrawingInput(const std::string &path, const std::string &file_name,
                                   const char &color, const std::string &file_extension,
@@ -11,7 +13,8 @@ DrawingInput::DrawingInput(const std::string &path, const std::string &file_name
     splitByRange();
 }
 
-DrawingInput::DrawingInput(const std::string &wall_name_, const std::string &path, const std::string &file_name,
+DrawingInput::DrawingInput(const std::string &wall_name_, const std_msgs::Float64MultiArray &ri_ranges, 
+                                  const std::string &path, const std::string &file_name,
                                   const char &color, const std::string &file_extension,
                                   const geometry_msgs::Pose &drawing_pose) {
   setFileName(path, file_name, color, file_extension);
@@ -25,7 +28,7 @@ DrawingInput::DrawingInput(const std::string &wall_name_, const std::string &pat
   removeLongLine();
   std::cout << "Cut long lines Done\n";
   if (this->size[0] > 0.55)
-    splitByRange();
+    splitByRangeArb(ri_ranges);
 }
 
 
@@ -273,8 +276,11 @@ void DrawingInput::readDrawingFileArb(){
   std::ifstream txt(ros::package::getPath("large_scale_drawing")+this->file_name_full);
   // check if text file is well opened
   if(!txt.is_open()){
-    std::cout << "FILE NOT FOUND\n";
+    ROS_INFO("FILE NOT FOUND");
+    return;
   }
+
+  std::cout << "File FOUND\n";
 
   // first line indicates the size
   std::getline(txt, line); // drawing size
@@ -287,6 +293,8 @@ void DrawingInput::readDrawingFileArb(){
   point_t pt, orientation;
   Stroke stroke;
   geometry_msgs::Pose drawing_pose;
+
+  std::cout << "Start reading drawing file\n";
 
   while(std::getline(txt, line)) {
     if(line == "End") { // stroke finished
@@ -302,9 +310,6 @@ void DrawingInput::readDrawingFileArb(){
       z = (-stod(tempSplit[1])+0.5) * this->target_size + this->drawing_pose.position.z;
       pt.push_back(y); pt.push_back(z);
 
-      // std::cout<< "1) Get Quaternion \n";
- 
-
       tie(x, orientation) = getXAndQuaternion(pt);
 
       drawing_pose.position.x = x;
@@ -315,8 +320,6 @@ void DrawingInput::readDrawingFileArb(){
       drawing_pose.orientation.z = orientation[2];
       drawing_pose.orientation.w = orientation[3];
       stroke.push_back(drawing_pose);
-
-      // std::cout<< "8) DONE! Got Drawing Pose into stroke\n\n";
     }
   }
 }
@@ -427,4 +430,211 @@ tf::Matrix3x3 DrawingInput::getRotationMatrix(point_t &axis, double c){
                         uz*ux*(1-c)-uy*s, uz*uy*(1-c)+ux*s, c+uz*uz*(1-c));
 
   return temp;
+}
+
+void DrawingInput::setCanvasRangeArb(const std_msgs::Float64MultiArray &ri_ranges){
+  // ranges: ranges calculated from Greedy Alg.
+  std::cout << "Set Canvas Range\n";
+  int num_range = ri_ranges.data.size();
+  
+  std::array<double, 2> range;
+  
+  range[0] = ri_ranges.data[0]; // start of drawing 
+
+  for (int i = 1; i < num_range; i++) {
+    range[1] = ri_ranges.data[i];
+    this->ranges.push_back(range);
+    range[0] = ri_ranges.data[i];
+  }
+}
+
+void DrawingInput::splitByRangeArb(const std_msgs::Float64MultiArray &ri_ranges){
+  // get range ready
+  this->setCanvasRangeArb(ri_ranges);
+  std::vector<std::vector<Stroke>> strokes_by_range (this->ranges.size());
+
+  // detect which range the drawing coordinate is in
+  int range_index_prev, range_index;
+  std::cout << "Divide strokes to Range\n";
+  
+  for (int i = 0; i < this->strokes.size(); i++) {
+    Stroke stroke;
+    range_index_prev = this->detectRange(this->strokes[i][0]);
+
+    for (int j = 1; j < this->strokes[i].size(); j++) {
+      range_index = this->detectRange(strokes[i][j]);
+
+      if (range_index_prev != range_index) { // split stroke
+        int index = std::min(range_index_prev, range_index);
+        geometry_msgs::Pose contact = this->strokes[i][j];
+        contact.position.x = (strokes[i][j].position.x - strokes[i][j-1].position.x)*(this->ranges[index][1] - strokes[i][j-1].position.y)/(strokes[i][j].position.x - strokes[i][j-1].position.y) + strokes[i][j-1].position.x;
+        contact.position.y = this->ranges[index][1];
+        contact.position.z = (strokes[i][j].position.z - strokes[i][j-1].position.z)*(this->ranges[index][1] - strokes[i][j-1].position.y)/(strokes[i][j].position.z - strokes[i][j-1].position.y) + strokes[i][j-1].position.z;
+        stroke.push_back (contact);
+
+        // only if stroke size is bigger than 5 points
+        if (stroke.size() > 5) {
+          strokes_by_range[range_index_prev].push_back(stroke);
+        }
+        Stroke().swap(stroke);
+        stroke.push_back (contact);
+        range_index_prev = range_index;
+      }
+      else {
+        stroke.push_back(this->strokes[i][j]);
+      }
+    }
+    strokes_by_range[range_index].push_back(stroke);
+  }
+
+  this->strokes_by_range = strokes_by_range;
+
+  std::cout << "Center strokes\n";
+
+  // make center of splited drawing as y = 0 
+  for (int i = 0; i < this->strokes_by_range.size(); i++){ //range
+    double diff = (this->ranges[i][0] + this->ranges[i][1])/2;
+    this->diffs.push_back(diff);
+    for (int j = 0; j < this->strokes_by_range[i].size(); j++){ //strokes
+       for (int k = 0; k < this->strokes_by_range[i][j].size(); k++) //pose
+         this->strokes_by_range[i][j][k].position.y -= diff;
+    }
+  }
+}
+
+
+std::vector<std::vector<double>> DrawingInput::matrixMult(const std::vector<std::vector<double>> &A, const std::vector<std::vector<double>> &B){
+  std::vector<std::vector<double>> ans;
+  std::cout << "MULT << THIS IS WHERE THE PROBLEM IS AT THIS MOMENT\n";
+
+  for(int i = 0; i < A.size(); i++){
+    for(int j = 0; j < A[0].size(); j++){
+      ans[i][j] = 0;
+      for(int k=0; k < A[0].size(); k++){    
+        ans[i][j]+=A[i][k]*B[k][j];    
+      }  
+    }
+  }
+
+  std::cout << "MULT return\n";
+
+
+  return ans;
+}
+
+std::vector<std::vector<double>> DrawingInput::matrixInv(const std::vector<std::vector<double>> &m){
+  std::vector<std::vector<double>> inv;
+  std::cout << "INV\n";
+
+  double A2323 = m[2][2] * m[3][3] - m[2][3] * m[3][2] ;
+  double A1323 = m[2][1] * m[3][3] - m[2][3] * m[3][1] ;
+  double A1223 = m[2][1] * m[3][2] - m[2][2] * m[3][1] ;
+  double A0323 = m[2][0] * m[3][3] - m[2][3] * m[3][0] ;
+  double A0223 = m[2][0] * m[3][2] - m[2][2] * m[3][0] ;
+  double A0123 = m[2][0] * m[3][1] - m[2][1] * m[3][0] ;
+  double A2313 = m[1][2] * m[3][3] - m[1][3] * m[3][2] ;
+  double A1313 = m[1][1] * m[3][3] - m[1][3] * m[3][1] ;
+  double A1213 = m[1][1] * m[3][2] - m[1][2] * m[3][1] ;
+  double A2312 = m[1][2] * m[2][3] - m[1][3] * m[2][2] ;
+  double A1312 = m[1][1] * m[2][3] - m[1][3] * m[2][1] ;
+  double A1212 = m[1][1] * m[2][2] - m[1][2] * m[2][1] ;
+  double A0313 = m[1][0] * m[3][3] - m[1][3] * m[3][0] ;
+  double A0213 = m[1][0] * m[3][2] - m[1][2] * m[3][0] ;
+  double A0312 = m[1][0] * m[2][3] - m[1][3] * m[2][0] ;
+  double A0212 = m[1][0] * m[2][2] - m[1][2] * m[2][0] ;
+  double A0113 = m[1][0] * m[3][1] - m[1][1] * m[3][0] ;
+  double A0112 = m[1][0] * m[2][1] - m[1][1] * m[2][0] ;
+
+  std::cout << "DET\n";
+
+  double det = m[0][0] * ( m[1][1] * A2323 - m[1][2] * A1323 + m[1][3] * A1223 ) 
+      - m[0][1] * ( m[1][0] * A2323 - m[1][2] * A0323 + m[1][3] * A0223 ) 
+      + m[0][2] * ( m[1][0] * A1323 - m[1][1] * A0323 + m[1][3] * A0123 ) 
+      - m[0][3] * ( m[1][0] * A1223 - m[1][1] * A0223 + m[1][2] * A0123 ) ;
+  det = 1 / det;
+
+  inv[0][0] = det *   ( m[1][1] * A2323 - m[1][2] * A1323 + m[1][3] * A1223 );
+  inv[0][1] = det * - ( m[0][1] * A2323 - m[0][2] * A1323 + m[0][3] * A1223 );
+  inv[0][2] = det *   ( m[0][1] * A2313 - m[0][2] * A1313 + m[0][3] * A1213 );
+  inv[0][3] = det * - ( m[0][1] * A2312 - m[0][2] * A1312 + m[0][3] * A1212 );
+  inv[1][0] = det * - ( m[1][0] * A2323 - m[1][2] * A0323 + m[1][3] * A0223 );
+  inv[1][1] = det *   ( m[0][0] * A2323 - m[0][2] * A0323 + m[0][3] * A0223 );
+  inv[1][2] = det * - ( m[0][0] * A2313 - m[0][2] * A0313 + m[0][3] * A0213 );
+  inv[1][3] = det *   ( m[0][0] * A2312 - m[0][2] * A0312 + m[0][3] * A0212 );
+  inv[2][0] = det *   ( m[1][0] * A1323 - m[1][1] * A0323 + m[1][3] * A0123 );
+  inv[2][1] = det * - ( m[0][0] * A1323 - m[0][1] * A0323 + m[0][3] * A0123 );
+  inv[2][2] = det *   ( m[0][0] * A1313 - m[0][1] * A0313 + m[0][3] * A0113 );
+  inv[2][3] = det * - ( m[0][0] * A1312 - m[0][1] * A0312 + m[0][3] * A0112 );
+  inv[3][0] = det * - ( m[1][0] * A1223 - m[1][1] * A0223 + m[1][2] * A0123 );
+  inv[3][1] = det *   ( m[0][0] * A1223 - m[0][1] * A0223 + m[0][2] * A0123 );
+  inv[3][2] = det * - ( m[0][0] * A1213 - m[0][1] * A0213 + m[0][2] * A0113 );
+  inv[3][3] = det *   ( m[0][0] * A1212 - m[0][1] * A0212 + m[0][2] * A0112 );
+
+  std::cout << "INV return\n";
+
+  return inv;
+}
+
+void DrawingInput::relocateDrawingsArb(geometry_msgs::Pose &ridgeback, int range_index){
+  // use ridgeback's position and orientation + wall spawn loaction to change world coordinate system to local coordinate system
+  ROS_INFO("Calculate Transformation Matrix");
+  
+  double rad = ridgeback.orientation.x * PI / 180.0;
+  // calculate transformation matrix
+  std::cout << "T\n";
+  std::vector<std::vector<double>> T; // translation matrix
+  T.push_back({1,0,0,ridgeback.position.x});
+  T.push_back({0,1,0,ridgeback.position.y});
+  T.push_back({0,0,1,ridgeback.position.z});
+  T.push_back({0,0,0,1});
+  std::cout << "R\n";
+
+  std::vector<std::vector<double>> R; // rotation matrix
+  R.push_back({cos(rad),-sin(rad),0,0});
+  R.push_back({sin(rad),cos(rad), 0,0});
+  R.push_back({0,0, 1, 0});
+  R.push_back({0,0, 0, 1});
+
+  ROS_INFO("Calculating Inverse...");
+
+  std::vector<std::vector<double>> trans = matrixInv(matrixMult(T, R));
+
+  ROS_INFO("Tranforming strokes...");
+
+  for(int j = 0; j < strokes_by_range[range_index].size(); j++){
+    for (int k = 0; k < this->strokes_by_range[range_index][j].size(); k++){ //pose
+      double sum = 0; // x
+      sum += trans[0][0]*this->strokes_by_range[range_index][j][k].position.x;   
+      sum += trans[0][1]*this->strokes_by_range[range_index][j][k].position.y;   
+      sum += trans[0][2]*this->strokes_by_range[range_index][j][k].position.z;   
+      sum += trans[0][3];   
+      this->strokes_by_range[range_index][j][k].position.x = sum;
+
+      sum = 0; // y
+      sum += trans[1][0]*this->strokes_by_range[range_index][j][k].position.x;   
+      sum += trans[1][1]*this->strokes_by_range[range_index][j][k].position.y;   
+      sum += trans[1][2]*this->strokes_by_range[range_index][j][k].position.z;   
+      sum += trans[1][3];   
+      this->strokes_by_range[range_index][j][k].position.y = sum;
+
+      sum = 0; // z
+      sum += trans[2][0]*this->strokes_by_range[range_index][j][k].position.x;   
+      sum += trans[2][1]*this->strokes_by_range[range_index][j][k].position.y;   
+      sum += trans[2][2]*this->strokes_by_range[range_index][j][k].position.z;   
+      sum += trans[2][3];   
+      this->strokes_by_range[range_index][j][k].position.z = sum;
+
+      sum = 0; // h
+      sum += trans[3][0]*this->strokes_by_range[range_index][j][k].position.x;   
+      sum += trans[3][1]*this->strokes_by_range[range_index][j][k].position.y;   
+      sum += trans[3][2]*this->strokes_by_range[range_index][j][k].position.z;   
+      sum += trans[3][3];   
+      
+      if(sum != 1){
+        this->strokes_by_range[range_index][j][k].position.x /= sum;
+        this->strokes_by_range[range_index][j][k].position.y /= sum;
+        this->strokes_by_range[range_index][j][k].position.z /= sum;
+      }
+    }  
+  }
 }
