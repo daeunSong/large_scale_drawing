@@ -1,18 +1,20 @@
 #! /usr/bin/env python3
 import rospy
 from nav_msgs.msg import Odometry
-import math, time
+import math
 import numpy as np
 from geometry_msgs.msg import PoseArray, Point, Quaternion, Pose, Twist
 from std_msgs.msg import *
 from trajectory_script_algorithm import *
-
+'''
+rostopic pub /iiwa_ridgeback_communicaiton/iiwa std_msgs/String -- '0'
+'''
 class Ridgeback:
 
     def __init__(self):
 
         #init
-        self.iiwa_state = 0
+        self.iiwa_state = 1
 
         self.publisher_pose = rospy.Publisher('/iiwa_ridgeback_communicaiton/ridgeback/pose', Pose, queue_size=10)
         self.publisher_state = rospy.Publisher('/iiwa_ridgeback_communicaiton/ridgeback/state', String, queue_size=10)
@@ -45,8 +47,8 @@ class Ridgeback:
         return roll_x, pitch_y, yaw_z 
 
     def callback_iiwa(self, msg):
-        self.iiwa_state = 0
-        # print(self.iiwa_state)
+        self.iiwa_state = msg.data
+        # print('iiwa state is:',self.iiwa_state)
 
     def callback_odom(self, msg):
 
@@ -67,36 +69,7 @@ class Ridgeback:
 
         self.rad = math.radians(angle)
 
-    # def fixed_goal_time(self, goal_x, goal_y):
-
-    #     x_move = goal_x-self.position_x
-    #     y_move = goal_y-self.position_y
-
-    #     goal = np.array([[x_move],[y_move]])
-
-    #     rotation_matrix = np.array([[math.cos(self.rad), -math.sin(self.rad)], 
-    #                                 [math.sin(self.rad), math.cos(self.rad)]])
-
-    #     r_goal = np.matmul(rotation_matrix, goal)
-
-    #     self.move_relative(float(r_goal[0][0]), float(r_goal[1][0]), duration=10)
-
-    # def move_relative(x, y, duration=5):
-    #     print("moving to :", x, y)
-    #     publisher = rospy.Publisher('cmd_vel', Twist, queue_size=1)
-
-    #     cmd = Twist()
-    #     cmd.linear.x = x/duration
-    #     cmd.linear.y = y/duration
-    #     cmd.linear.z = 0
-
-    #     rospy.sleep(1)
-
-    #     seconds = time.time()
-    #     while time.time() - seconds < duration:
-    #         publisher.publish(cmd)
-
-    def fixed_goal(self, goal_x, goal_y, duration=5):
+    def fixed_goal(self, goal_x, goal_y):
 
         self.publish_state('0')
         print(f'Executing ridgeback drawing #{self.state}')
@@ -135,37 +108,38 @@ class Ridgeback:
         return math.sqrt(r_goal[0]**2+ r_goal[1]**2)
 
     def follow_trajectory(self, path, angles):
-        print(3)
+
         for i in range(len(angles)):
-            while self.iiwa_state != 0:
+            while self.iiwa_state != "0":
                 rospy.sleep(1)
-                print(4)
+                print(f'Waiting for iiwa to stop drawing: iiwa state #{self.iiwa_state}')
             print(f'IIWA done executing #{self.iiwa_state}')
 
-            print(f'i: {i}, x: {path[i][0]}, y: {path[i][1]}')
+            # print(f'i: {i}, x: {path[i][0]}, y: {path[i][1]}')
 
             self.fixed_rotate(0)
 
-            result = self.fixed_goal(path[i][0], path[i][1]+0.5)
+            result = self.fixed_goal(path[i][0], path[i][1]+0.3)
 
             if result:
                 rospy.loginfo("Goal execution done!")
+                rospy.loginfo("Rotating to calculated angle >>")
+                if angles[i][0] == 'l':
+                    self.fixed_rotate(abs(float(angles[i][2:]))+180)
+                else:
+                    self.fixed_rotate(360 - abs(float(angles[i][2:])))
+                rospy.loginfo("DONE rotating >>")
                 self.publish_state(self.state)
                 self.state += 1
-                for j in range(30):
+                for j in range(20):
                     self.publish_pose()
-                    print('published pose')
-            print(angles, i)
-            if angles[i][0] == 'l':
-                self.fixed_rotate(abs(float(angles[i][2:]))+180)
-            else:
-                self.fixed_rotate(360 - abs(float(angles[i][2:])))
 
-            self.fixed_rotate(0)
-            rospy.sleep(0.5)
+            rospy.sleep(15)
 
     def publish_state(self, number):
-        self.publisher_state.publish(number)
+        s = String()
+        s.data = str(number)
+        self.publisher_state.publish(s)
 
     def publish_pose(self):
         
@@ -259,7 +233,7 @@ if __name__ == '__main__':
     Rid = Ridgeback()
     rospy.sleep(2)
     Rid.publish_trajectory()
-    print(1)
+    print('publish trajectory done')
     Rid.fixed_rotate(0)
-    print(2)
+    print('rotated to 0 degrees for the first time')
     Rid.follow_trajectory(list(zip(Rid.path_x, Rid.path_y)), Rid.path_angle)

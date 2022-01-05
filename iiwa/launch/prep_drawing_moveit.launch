@@ -6,7 +6,7 @@
 
   <!-- ridgeback_move -->
   <node name="odom_publisher" pkg="large_scale_drawing" type="odom_publisher.py" respawn="false" output="screen"/>
-  <node name="move_odom_tf" pkg="large_scale_drawing" type="move_odom_tf.py" respawn="false" output="screen"/>
+  <!--node name="move_odom_tf" pkg="large_scale_drawing" type="move_odom_tf.py" respawn="false" output="screen"/-->
 
   <!-- iiwa line -->
   <node name="line_publisher" pkg="large_scale_drawing" type="line_publisher" respawn="false" output="screen" />
