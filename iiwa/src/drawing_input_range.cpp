@@ -505,15 +505,19 @@ void DrawingInput::splitByRangeArb(const std_msgs::Float64MultiArray &ri_ranges)
 
 std::vector<std::vector<double>> DrawingInput::matrixMult(const std::vector<std::vector<double>> &A, const std::vector<std::vector<double>> &B){
   std::vector<std::vector<double>> ans;
-  std::cout << "MULT << THIS IS WHERE THE PROBLEM IS AT THIS MOMENT\n";
+  std::cout << "MULT\n";
 
   for(int i = 0; i < A.size(); i++){
+  	std::vector<double> temp;
     for(int j = 0; j < A[0].size(); j++){
-      ans[i][j] = 0;
+      double sum = 0;
       for(int k=0; k < A[0].size(); k++){    
-        ans[i][j]+=A[i][k]*B[k][j];    
+        sum +=A[i][k]*B[k][j];    
       }  
+      temp.push_back(sum);
     }
+    ans.push_back(temp);
+    temp.clear();
   }
 
   std::cout << "MULT return\n";
@@ -553,22 +557,36 @@ std::vector<std::vector<double>> DrawingInput::matrixInv(const std::vector<std::
       - m[0][3] * ( m[1][0] * A1223 - m[1][1] * A0223 + m[1][2] * A0123 ) ;
   det = 1 / det;
 
-  inv[0][0] = det *   ( m[1][1] * A2323 - m[1][2] * A1323 + m[1][3] * A1223 );
-  inv[0][1] = det * - ( m[0][1] * A2323 - m[0][2] * A1323 + m[0][3] * A1223 );
-  inv[0][2] = det *   ( m[0][1] * A2313 - m[0][2] * A1313 + m[0][3] * A1213 );
-  inv[0][3] = det * - ( m[0][1] * A2312 - m[0][2] * A1312 + m[0][3] * A1212 );
-  inv[1][0] = det * - ( m[1][0] * A2323 - m[1][2] * A0323 + m[1][3] * A0223 );
-  inv[1][1] = det *   ( m[0][0] * A2323 - m[0][2] * A0323 + m[0][3] * A0223 );
-  inv[1][2] = det * - ( m[0][0] * A2313 - m[0][2] * A0313 + m[0][3] * A0213 );
-  inv[1][3] = det *   ( m[0][0] * A2312 - m[0][2] * A0312 + m[0][3] * A0212 );
-  inv[2][0] = det *   ( m[1][0] * A1323 - m[1][1] * A0323 + m[1][3] * A0123 );
-  inv[2][1] = det * - ( m[0][0] * A1323 - m[0][1] * A0323 + m[0][3] * A0123 );
-  inv[2][2] = det *   ( m[0][0] * A1313 - m[0][1] * A0313 + m[0][3] * A0113 );
-  inv[2][3] = det * - ( m[0][0] * A1312 - m[0][1] * A0312 + m[0][3] * A0112 );
-  inv[3][0] = det * - ( m[1][0] * A1223 - m[1][1] * A0223 + m[1][2] * A0123 );
-  inv[3][1] = det *   ( m[0][0] * A1223 - m[0][1] * A0223 + m[0][2] * A0123 );
-  inv[3][2] = det * - ( m[0][0] * A1213 - m[0][1] * A0213 + m[0][2] * A0113 );
-  inv[3][3] = det *   ( m[0][0] * A1212 - m[0][1] * A0212 + m[0][2] * A0112 );
+  std::vector<double> temp;
+  
+  temp.push_back(det *   ( m[1][1] * A2323 - m[1][2] * A1323 + m[1][3] * A1223 ));
+  temp.push_back(det * - ( m[0][1] * A2323 - m[0][2] * A1323 + m[0][3] * A1223 ));
+  temp.push_back(det *   ( m[0][1] * A2313 - m[0][2] * A1313 + m[0][3] * A1213 ));
+  temp.push_back(det * - ( m[0][1] * A2312 - m[0][2] * A1312 + m[0][3] * A1212 ));
+  inv.push_back(temp);
+  temp.clear();
+  
+  
+  temp.push_back(det * - ( m[1][0] * A2323 - m[1][2] * A0323 + m[1][3] * A0223 ));
+  temp.push_back(det *   ( m[0][0] * A2323 - m[0][2] * A0323 + m[0][3] * A0223 ));
+  temp.push_back(det * - ( m[0][0] * A2313 - m[0][2] * A0313 + m[0][3] * A0213 ));
+  temp.push_back(det *   ( m[0][0] * A2312 - m[0][2] * A0312 + m[0][3] * A0212 ));
+  inv.push_back(temp);
+  temp.clear();
+  
+  temp.push_back(det *   ( m[1][0] * A1323 - m[1][1] * A0323 + m[1][3] * A0123 ));
+  temp.push_back(det * - ( m[0][0] * A1323 - m[0][1] * A0323 + m[0][3] * A0123 ));
+  temp.push_back(det *   ( m[0][0] * A1313 - m[0][1] * A0313 + m[0][3] * A0113 ));
+  temp.push_back(det * - ( m[0][0] * A1312 - m[0][1] * A0312 + m[0][3] * A0112 ));
+  inv.push_back(temp);
+  temp.clear();
+  
+  temp.push_back(det * - ( m[1][0] * A1223 - m[1][1] * A0223 + m[1][2] * A0123 ));
+  temp.push_back(det *   ( m[0][0] * A1223 - m[0][1] * A0223 + m[0][2] * A0123 ));
+  temp.push_back(det * - ( m[0][0] * A1213 - m[0][1] * A0213 + m[0][2] * A0113 ));
+  temp.push_back(det *   ( m[0][0] * A1212 - m[0][1] * A0212 + m[0][2] * A0112 ));
+  inv.push_back(temp);
+  temp.clear();
 
   std::cout << "INV return\n";
 
