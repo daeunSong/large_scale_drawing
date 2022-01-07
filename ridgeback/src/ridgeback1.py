@@ -27,6 +27,8 @@ class Ridgeback:
         self.linear_speed = 0.1
         self.reached = False
         self.i = 0
+        # self.displacement = [-1.2, 2]
+        self.displacement = [0, 0]
 
     def euler_from_quaternion(self, orientation_list):
 
@@ -72,7 +74,7 @@ class Ridgeback:
     def fixed_goal(self, goal_x, goal_y):
 
         self.publish_state('0')
-        print(f'Executing ridgeback drawing #{self.state}')
+        print(f'Executing ridgeback moving #{self.state}')
         cmd = Twist()
 
         while not self.reached:
@@ -80,7 +82,7 @@ class Ridgeback:
             x_move = goal_x-self.position_x
             y_move = goal_y-self.position_y
             self.i +=1
-            if self.i % 300000 == 0:
+            if self.i % 3000 == 0:
                 print("distance: ", dist)
             goal = np.array([[x_move],[y_move]])
 
@@ -91,11 +93,11 @@ class Ridgeback:
             dist = self.calculate_distance(r_goal)
             
             if not self.reached:
-                if dist > 0.3:
+                if dist > 0.1:
                     cmd.linear.x = self.linear_speed * r_goal[0][0]
                     cmd.linear.y = self.linear_speed * r_goal[1][0]
 
-                if dist < 0.3:
+                if dist <= 0.1:
                     cmd.linear.x = 0
                     cmd.linear.y = 0
                     self.reached = True
@@ -103,23 +105,25 @@ class Ridgeback:
                     return True
             self.publisher_cmd_vel.publish(cmd)
         self.reached = False
+        # print()
+        return False
 
     def calculate_distance(self, r_goal):
         return math.sqrt(r_goal[0]**2+ r_goal[1]**2)
 
     def follow_trajectory(self, path, angles):
-
+        print('length of path is:',len(angles))
         for i in range(len(angles)):
+            rospy.sleep(5)
+            print(f'Executing {i}th path')
             while self.iiwa_state != "0":
                 rospy.sleep(1)
                 print(f'Waiting for iiwa to stop drawing: iiwa state #{self.iiwa_state}')
             print(f'IIWA done executing #{self.iiwa_state}')
 
-            # print(f'i: {i}, x: {path[i][0]}, y: {path[i][1]}')
-
             self.fixed_rotate(0)
-
-            result = self.fixed_goal(path[i][0], path[i][1]+0.3)
+            print(f'Moving to {path[i][0]+self.displacement[0], path[i][1]+self.displacement[1]}')
+            result = self.fixed_goal(path[i][0]+self.displacement[0], path[i][1]+self.displacement[1])
 
             if result:
                 rospy.loginfo("Goal execution done!")
@@ -133,8 +137,9 @@ class Ridgeback:
                 self.state += 1
                 for j in range(20):
                     self.publish_pose()
-
-            rospy.sleep(5)
+            else:
+                raise('Something went wrong')
+            rospy.sleep(1)
 
     def publish_state(self, number):
         s = String()
@@ -171,14 +176,10 @@ class Ridgeback:
     def publish_trajectory(self):
         
         # self.path_angle, self.iiwa_range_list, self.path_x, self.path_y = run_algorithm()
-        self.path_angle = ['r 89.37040139158931', 'r 89.39130280006657', 'l 75.29755656189036', 'l 89.92431209222858', 'r 86.66614933846336']
-        self.path_x = [-0.7317906780332951, -0.24249885635724658, 0.6170393555947162, 0.6190568022482837, 1.2094769258297666]
-
-        self.path_y =  [0.9150482989706723, 1.0910451453734287, 0.9321944559001386, 1.0830006980196745, 0.9553538934110108]
-
-        self.iiwa_range_list = [-0.73, -0.5335, 0.1475, 0.3665, 0.9775, 0.96]
-
-
+        self.path_x = [-0.109782, 0.77, 0.8327, 0.959526, 1.850213]
+        self.path_y = [-0.8813830086, -1.034, -0.92026, -1.027839035, -0.88116933]
+        self.iiwa_range_list = [0.0, 0.4205, 0.63, 1.13248, 1.3202, 1.336]
+        self.path_angle =  ['r 71.437825', 'l 76.984351', 'r 86.25792', 'r 77.1865', 'l 71.3958']
         message= PoseArray()
         pose_list = []
         
@@ -224,7 +225,7 @@ class Ridgeback:
         print('X',self.path_x)
         print('Y',self.path_y)
         print('iiwa',self.iiwa_range_list)
-        # print(self.path_angle)
+        print('angle',self.path_angle)
 
 if __name__ == '__main__':
 
@@ -237,3 +238,9 @@ if __name__ == '__main__':
     Rid.fixed_rotate(0)
     print('rotated to 0 degrees for the first time')
     Rid.follow_trajectory(list(zip(Rid.path_x, Rid.path_y)), Rid.path_angle)
+
+'''
+X [-0.10966688465291782, 0.7711736530276934, 0.8327751892531875, 0.95952947051046, 1.850233156300313]
+Y [-0.8813830020914086, -1.0344468902719777, -0.9202935357012856, -1.0278386179869035, -0.8811926113626933]
+iiwa [0.0, 0.4205, 0.63, 1.1324999999999998, 1.3210000000000002, 1.336]
+'''

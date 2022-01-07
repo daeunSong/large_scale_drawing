@@ -8,7 +8,7 @@ class Iidgeback:
         self.r_center = [rx, ry]
         self.i_center = [rx, ry]
         self.r_radius = radius
-        self.i_radius = 0.4
+        self.i_radius = 0.3
         self.cover_wall_amount = 0
         self.cover_point = []
         self.min_x = 0
@@ -235,9 +235,11 @@ def open_file(filename, fileext):
     # files = os.listdir(cwd) 
     point = []
     wall = []
-    with open(cwd[:-13]+'input/' + filename + '.' + fileext) as f:
+    
+    # with open(cwd[:-13]+'input/' + filename + '.' + fileext) as f:
+    with open('/home/jypark/catkin_ws/src/large_scale_drawing/wall/' + filename + '.' + fileext) as f:
         for line in f:
-            if line[0] != 'v':
+            if line[0] != 'v' or line[:2] == 'vn':
                 continue
             for word in line.split():
                 if word == 'v':
@@ -259,19 +261,19 @@ def plot_wall_draw(wall, size=0.4):
         x_wall.append(x)
         y_wall.append(y)
         z_wall.append(z)
-    if round(x_wall[0], 2) == 0:
+    if len([i for i in x_wall[:10] if i==0]) > 3:
         z_wall = [-z for z in z_wall]
-        plt.scatter(y_wall, z_wall, c='indigo', s=size, marker=marker_shape)
+        # plt.scatter(y_wall, z_wall, c='indigo', s=size, marker=marker_shape)
         print('zero: x')
         return y_wall, z_wall
-    elif round(y_wall[0], 2) == 0:
+    elif len([i for i in y_wall[:10] if i==0]) > 3:
         z_wall = [-z for z in z_wall]
-        plt.scatter(x_wall, z_wall, c='indigo', s=size, marker=marker_shape)
+        # plt.scatter(x_wall, z_wall, c='indigo', s=size, marker=marker_shape)
         print('zero: y')
         return x_wall, z_wall
-    elif round(z_wall[0], 2) == 0:
+    elif len([i for i in z_wall[:10] if i==0]) > 3:
         y_wall = [-y for y in y_wall]
-        plt.scatter(x_wall, y_wall, c='indigo', s=size, marker=marker_shape)
+        # plt.scatter(x_wall, y_wall, c='indigo', s=size, marker=marker_shape)
         print('zero: z')
         return x_wall, y_wall
     print('done')
@@ -314,12 +316,12 @@ def re_set_length(x_wall, y_wall):
     print(f'center: {center}, from: {center-img_size}, to: {center+img_size}')
     return x_wall_limit, y_wall_limit
 
-def run_algorithm(file_name = 'wood_bee_hive_three'):
+def run_algorithm(file_name = 'bee_hive'):
     
     input_wall = open_file(file_name, 'obj')
     # print(f'Opened file {file_name}')
-    x_wall, y_wall = plot_wall_draw(input_wall)
-    x_wall, y_wall = re_set_length(x_wall, y_wall)
+    y_wall, x_wall = plot_wall_draw(input_wall)
+    # x_wall, y_wall = re_set_length(x_wall, y_wall)
 
     x = generate_interval(x_wall)
     y = generate_interval(y_wall)
@@ -339,9 +341,9 @@ def run_algorithm(file_name = 'wood_bee_hive_three'):
     print(iiwa_range_list)
     print(path_angle)
 
-    # plt.plot(x, y, color="grey")
-    # plt.gca().set_aspect('equal', adjustable='box')
-    # plt.show()
+    plt.plot(x, y, color="grey")
+    plt.gca().set_aspect('equal', adjustable='box')
+    plt.show()
     return path_angle, iiwa_range_list, path_x, path_y
 
 if __name__ == "__main__":
