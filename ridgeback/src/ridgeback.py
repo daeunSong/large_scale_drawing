@@ -5,9 +5,9 @@ import math
 import numpy as np
 from geometry_msgs.msg import PoseArray, Point, Quaternion, Pose, Twist
 from std_msgs.msg import *
-from trajectory_script_algorithm import *
+from trajectory_script_algorithm1 import *
 '''
-rostopic pub /iiwa_ridgeback_communicaiton/iiwa std_msgs/String -- '0'
+rostopic pub /iiwa_ridgeback_communicaiton/iiwa std_msgs/String -- \'0\'
 '''
 class Ridgeback:
 
@@ -100,9 +100,10 @@ class Ridgeback:
                     cmd.linear.y = 0
                     self.reached = True
                     print('DONE')
-                    return True
+                    
             self.publisher_cmd_vel.publish(cmd)
         self.reached = False
+        return True
 
     def calculate_distance(self, r_goal):
         return math.sqrt(r_goal[0]**2+ r_goal[1]**2)
@@ -133,7 +134,8 @@ class Ridgeback:
                 self.state += 1
                 for j in range(20):
                     self.publish_pose()
-
+            else:
+                raise('unknown error')
             rospy.sleep(5)
 
     def publish_state(self, number):
@@ -170,13 +172,13 @@ class Ridgeback:
 
     def publish_trajectory(self):
         
-        # self.path_angle, self.iiwa_range_list, self.path_x, self.path_y = run_algorithm()
-        self.path_angle = ['r 89.37040139158931', 'r 89.39130280006657', 'l 75.29755656189036', 'l 89.92431209222858', 'r 86.66614933846336']
-        self.path_x = [-0.7317906780332951, -0.24249885635724658, 0.6170393555947162, 0.6190568022482837, 1.2094769258297666]
+        self.path_angle, self.iiwa_range_list, self.path_x, self.path_y = run_algorithm()
+        # self.path_angle = ['r 89.37040139158931', 'r 89.39130280006657', 'l 75.29755656189036', 'l 89.92431209222858', 'r 86.66614933846336']
+        # self.path_x = [-0.7317906780332951, -0.24249885635724658, 0.6170393555947162, 0.6190568022482837, 1.2094769258297666]
 
-        self.path_y =  [0.9150482989706723, 1.0910451453734287, 0.9321944559001386, 1.0830006980196745, 0.9553538934110108]
+        # self.path_y =  [0.9150482989706723, 1.0910451453734287, 0.9321944559001386, 1.0830006980196745, 0.9553538934110108]
 
-        self.iiwa_range_list = [-0.73, -0.5335, 0.1475, 0.3665, 0.9775, 0.96]
+        # self.iiwa_range_list = [-0.73, -0.5335, 0.1475, 0.3665, 0.9775, 0.96]
 
 
         message= PoseArray()
