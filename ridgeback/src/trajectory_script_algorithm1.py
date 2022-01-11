@@ -229,15 +229,18 @@ def setting(circle):
     return circle.r_center[0]
 
 def open_file(filename, fileext):
-    import os
+    # import os
+    import rospkg
+    rospack = rospkg.RosPack()
 
-    cwd = os.getcwd()  # Get the current working directory (cwd)
+    # cwd = os.getcwd()  # Get the current working directory (cwd)
     # files = os.listdir(cwd) 
     point = []
     wall = []
     # /home/glabi/catkin_ws/src/large_scale_drawing/wall/bee_hive.obj
     # with open(cwd[:-13]+'input/' + filename + '.' + fileext) as f:
-    with open('/home/glabi/catkin_ws/src/large_scale_drawing/wall/' + filename + '.' + fileext) as f:
+    package_path = rospack.get_path('large_scale_drawing')
+    with open(package_path +'/wall/' + filename + '.' + fileext) as f:
         for line in f:
             if line[0] != 'v' or line[:2] == 'vn':
                 continue

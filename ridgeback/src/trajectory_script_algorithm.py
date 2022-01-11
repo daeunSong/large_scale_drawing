@@ -229,15 +229,14 @@ def setting(circle):
     return circle.r_center[0]
 
 def open_file(filename, fileext):
-    import os
+    import rospkg
+    rospack = rospkg.RosPack()
+    package_path = rospack.get_path('large_scale_drawing')
 
-    cwd = os.getcwd()  # Get the current working directory (cwd)
-    # files = os.listdir(cwd) 
     point = []
     wall = []
-    
-    # with open(cwd[:-13]+'input/' + filename + '.' + fileext) as f:
-    with open('/home/jypark/catkin_ws/src/large_scale_drawing/wall/' + filename + '.' + fileext) as f:
+
+    with open(package_path + '/wall/' + filename + '.' + fileext) as f:
         for line in f:
             if line[0] != 'v' or line[:2] == 'vn':
                 continue
@@ -316,7 +315,7 @@ def re_set_length(x_wall, y_wall):
     print(f'center: {center}, from: {center-img_size}, to: {center+img_size}')
     return x_wall_limit, y_wall_limit
 
-def run_algorithm(file_name = 'bee_hive'):
+def run_algorithm(file_name = 'bee_hive_three'):
     
     input_wall = open_file(file_name, 'obj')
     # print(f'Opened file {file_name}')
