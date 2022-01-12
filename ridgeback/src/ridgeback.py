@@ -182,10 +182,10 @@ class Ridgeback:
         # NOT QUATERNION. orientation x is the theta value of z-rotation
         if path_angle[0] == 'l':
             q.x = abs(float(path_angle[2:]))+180
-            print(q.x)
+            print(q.z)
         else:
             q.x = 360 - abs(float(path_angle[2:]))
-            print(q.x)
+            print(q.z)
 
         pose.position = p
         pose.orientation = q

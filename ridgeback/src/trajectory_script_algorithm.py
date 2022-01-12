@@ -46,7 +46,6 @@ class Iidgeback:
                 self.r_center[0] = self.i_center[0] + hypot * math.cos(self.angle)
             if not self.ridgeback_can_go(self.wall):
                 self.r_center[1] = self.i_center[1] + hypot*math.sin(self.angle)
-
         else:
             self.r_center[0] = self.i_center[0] - hypot*math.cos(self.angle)
             self.r_center[1] = self.i_center[1] - hypot*math.sin(self.angle)
@@ -67,7 +66,7 @@ class Iidgeback:
         return True
     def ridgeback_can_go(self, wall):
         for (i, j) in self.wall.uncovered + self.wall.covered:
-            if ((i - self.r_center[0]) ** 2 + (j - self.r_center[1]) ** 2 - (self.r_radius + 0.1) ** 2) <=0:
+            if ((i - self.r_center[0]) ** 2 + (j - self.r_center[1]) ** 2 - (self.r_radius + 0.1) ** 2) <= 0:
                 return False
         return True
     def in_iiwa_range(self, i, j):
@@ -147,9 +146,12 @@ class Candidate:
         count = 1
         x_interval = generate_interval(self.wall.xpoints, count)
         y_interval = generate_interval(self.wall.ypoints, count)
-        for i in range(len(x_interval)):
-            for j in np.arange(y_interval[i] - 2, y_interval[i] - limit, 0.05):
-                generated_circle = Iidgeback(id, round(x_interval[i], 3), round(j, 3), self.wall)
+        # for i in range(len(x_interval)):
+        #     for j in np.arange(y_interval[i] - 2, y_interval[i] - limit, 0.05):
+        #         generated_circle = Iidgeback(id, round(x_interval[i], 3), round(j, 3), self.wall)
+        for i in range(len(y_interval)):
+            for j in np.arange(x_interval[i] - 2, x_interval[i] - limit, 0.05):
+                generated_circle = Iidgeback(id, round(j, 3), round(y_interval[i], 3), self.wall)
                 if generated_circle.can_be_generated(self.wall):
                     IR.append(generated_circle)
                 else:
@@ -270,7 +272,7 @@ def plot_wall_draw(wall, size=0.4):
         print('zero: y')
         return x_wall, z_wall
     elif len([i for i in z_wall[:10] if i==0]) > 3:
-        y_wall = [-y for y in y_wall]
+        y_wall = [y for y in y_wall]
         # plt.scatter(x_wall, y_wall, c='indigo', s=size, marker=marker_shape)
         print('zero: z')
         return x_wall, y_wall
@@ -318,14 +320,14 @@ def run_algorithm(file_name = 'bee_hive_three'):
     
     input_wall = open_wall_file(file_name)
     # print('Opened file {file_name}')
-    y_wall, x_wall = plot_wall_draw(input_wall)
-    # x_wall, y_wall = re_set_length(x_wall, y_wall)
+    x_wall, y_wall = plot_wall_draw(input_wall)
+    # y_wall, x_wall = plot_wall_draw(input_wall)
 
     x = generate_interval(x_wall)
     y = generate_interval(y_wall)
     wall = Wall(x, y)
 
-    C = Candidate( wall, input_wall)
+    C = Candidate(wall, input_wall)
     print('Candidates generated')
     steps = greedy_cover_iiwa(wall, C)
 
@@ -337,6 +339,8 @@ def run_algorithm(file_name = 'bee_hive_three'):
     
     print(iiwa_range_list)
     print(path_angle)
+    print(path_x)
+    print(path_y)
 
     plt.plot(x, y, color="grey")
     plt.gca().set_aspect('equal', adjustable='box')
