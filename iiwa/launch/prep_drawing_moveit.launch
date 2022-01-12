@@ -12,7 +12,7 @@
   <!--node name="move_odom_tf" pkg="large_scale_drawing" type="move_odom_tf.py" respawn="false" output="screen"/-->
 
   <!-- iiwa line -->
-  <node name="line_publisher" pkg="large_scale_drawing" type="line_publisher" respawn="false" output="screen" />
+  <node name="marker_publisher" pkg="large_scale_drawing" type="marker_publisher" respawn="false" output="screen" />
 
   <!-- Run MoveIt! -->
   <include file="$(find ridgeback_iiwa_moveit)/launch/move_group.launch" />

@@ -4,18 +4,20 @@
 #include <visualization_msgs/Marker.h>
 #include <tf/transform_listener.h>
 
-class LinePublisher {
+class MarkerPublisher {
   public:
-    LinePublisher();
+    MarkerPublisher();
 
     bool ready_to_draw = false;
     visualization_msgs::Marker line_strip;
+    visualization_msgs::Marker wall;
 
     ros::Publisher marker_pub;
 
     geometry_msgs::Point getEEPoint();
     void setColor();
     void publishLine(float id);
+    void initWall(std::string wall_file_name, std::vector<double> wall_position);
 
   private:
     ros::NodeHandle nh;
