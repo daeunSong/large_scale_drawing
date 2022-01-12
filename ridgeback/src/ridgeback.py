@@ -5,7 +5,7 @@ import math
 import numpy as np
 from geometry_msgs.msg import PoseArray, Point, Quaternion, Pose, Twist
 from std_msgs.msg import *
-from trajectory_script_algorithm1 import *
+from trajectory_script_algorithm import *
 '''
 rostopic pub /iiwa_ridgeback_communicaiton/iiwa std_msgs/String -- \'0\'
 '''
@@ -27,6 +27,10 @@ class Ridgeback:
         self.linear_speed = 0.1
         self.reached = False
         self.i = 0
+
+        #config
+        self.wall_file_name = rospy.get_param('/wall_file_name')
+        self.wall_position = rospy.get_param('/wall_position')
 
     def euler_from_quaternion(self, orientation_list):
 
@@ -120,7 +124,7 @@ class Ridgeback:
 
             self.fixed_rotate(0)
 
-            result = self.fixed_goal(path[i][0], path[i][1]+0.3)
+            result = self.fixed_goal(path[i][0] + self.wall_position[0], path[i][1] + self.wall_position[1])
 
             if result:
                 rospy.loginfo("Goal execution done!")
@@ -170,58 +174,55 @@ class Ridgeback:
             if abs(self.yaw*180/math.pi-real_target)<1:
                 break
 
+    def set_message(self, path_x, path_y, path_angle):
+        p = Point()
+        q = Quaternion()
+        pose = Pose()
+
+        # NOT QUATERNION. orientation x is the theta value of z-rotation
+        if path_angle[0] == 'l':
+            q.x = abs(float(path_angle[2:]))+180
+            print(q.x)
+        else:
+            q.x = 360 - abs(float(path_angle[2:]))
+            print(q.x)
+
+        pose.position = p
+        pose.orientation = q
+
+        return pose
+
+
     def publish_trajectory(self):
         
-        self.path_angle, self.iiwa_range_list, self.path_x, self.path_y = run_algorithm()
+        self.path_angle, self.iiwa_range_list, self.path_x, self.path_y = run_algorithm(self.wall_file_name)
         # self.path_angle = ['r 89.37040139158931', 'r 89.39130280006657', 'l 75.29755656189036', 'l 89.92431209222858', 'r 86.66614933846336']
         # self.path_x = [-0.7317906780332951, -0.24249885635724658, 0.6170393555947162, 0.6190568022482837, 1.2094769258297666]
-
         # self.path_y =  [0.9150482989706723, 1.0910451453734287, 0.9321944559001386, 1.0830006980196745, 0.9553538934110108]
-
         # self.iiwa_range_list = [-0.73, -0.5335, 0.1475, 0.3665, 0.9775, 0.96]
-
 
         message= PoseArray()
         pose_list = []
-        
         for i in range(len(self.path_x)):
-            p = Point()
-            q = Quaternion()
             pose = Pose()
-
-            p.x = self.path_x[i]
-            p.y = self.path_y[i]
-
-            # NOT QUATERNION. orientation x is the theta value of z-rotation
-            if self.path_angle[i][0] == 'l':
-                q.x = abs(float(self.path_angle[i][2:]))+180
-                print(q.x)
-            else:
-                q.x = 360 - abs(float(self.path_angle[i][2:]))
-                print(q.x)
-
-            pose.position = p
-            pose.orientation = q
-
+            pose = self.set_message (self.path_x[i], self.path_y[i], self.path_angle[i])
             pose_list.append(pose)
 
         h = std_msgs.msg.Header()
         h.stamp = rospy.Time.now()
         message.header = h
-
         message.poses = pose_list
-
-        rate = rospy.Rate(10) 
-
+        rate = rospy.Rate(10)
 
         # drawing range
         range_msg = Float64MultiArray()
         range_msg.data = self.iiwa_range_list
 
-        for i in range(10):
+        for _ in range(10):
             self.publisher_range.publish(range_msg)
             self.publisher_traj.publish(message)
             rate.sleep()
+
         print()
         print('X',self.path_x)
         print('Y',self.path_y)

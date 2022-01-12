@@ -122,7 +122,6 @@ class Wall:
             else:
                 continue
         plt.scatter(cx, cy, marker="1")
-        print()
         print('length covered:', len(self.covered), '/', len(self.uncovered) + len(self.covered))
 
     def allcovered(self):
@@ -228,7 +227,7 @@ def setting(circle):
     print('c:', circle.r_center)
     return circle.r_center[0]
 
-def open_file(filename, fileext):
+def open_wall_file(filename, fileext="obj"):
     import rospkg
     rospack = rospkg.RosPack()
     package_path = rospack.get_path('large_scale_drawing')
@@ -256,10 +255,10 @@ def plot_wall_draw(wall, size=0.4):
 
     marker_shape="o"
 
-    for [x, y, z] in wall:
-        x_wall.append(x)
-        y_wall.append(y)
-        z_wall.append(z)
+    x_wall = list(np.array(wall).T[0])
+    y_wall = list(np.array(wall).T[1])
+    z_wall = list(np.array(wall).T[2])
+
     if len([i for i in x_wall[:10] if i==0]) > 3:
         z_wall = [-z for z in z_wall]
         # plt.scatter(y_wall, z_wall, c='indigo', s=size, marker=marker_shape)
@@ -299,8 +298,8 @@ def to_iiwa_range(min_x_list, max_x_list):
     for i in range(len(min_x_list)-1):
         to_iiwa.append((max_x_list[i]+min_x_list[i+1])/2)
     to_iiwa.append(min_x_list[-1])
-    print('\nto iiwa:')
-    print(to_iiwa)
+    # print('\nto iiwa:')
+    # print(to_iiwa)
     return to_iiwa
 
 def re_set_length(x_wall, y_wall):
@@ -317,8 +316,8 @@ def re_set_length(x_wall, y_wall):
 
 def run_algorithm(file_name = 'bee_hive_three'):
     
-    input_wall = open_file(file_name, 'obj')
-    # print(f'Opened file {file_name}')
+    input_wall = open_wall_file(file_name)
+    # print('Opened file {file_name}')
     y_wall, x_wall = plot_wall_draw(input_wall)
     # x_wall, y_wall = re_set_length(x_wall, y_wall)
 
@@ -333,7 +332,6 @@ def run_algorithm(file_name = 'bee_hive_three'):
     min_x_list, max_x_list, path_x, path_y, path_angle = to_gazebo_cmd_format(steps)
 
     iiwa_range_list = to_iiwa_range(min_x_list, max_x_list)
-    print()
     # print(min_x_list)
     # print(max_x_list)
     

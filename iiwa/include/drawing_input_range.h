@@ -18,29 +18,23 @@
 
 class DrawingInput {
   public:
+    DrawingInput(const std::string &, const char &, const geometry_msgs::Pose &);
     DrawingInput(const std::string &, const std::string &,
-                                  const char &, const std::string &,
-                                  const geometry_msgs::Pose &);
-    DrawingInput(const std::string &, const std_msgs::Float64MultiArray &, 
-                                  const std::string &, const std::string &,
-                                  const char &, const std::string &,
-                                  const geometry_msgs::Pose &);
+                                  const char &, const geometry_msgs::Pose &);
 
     std::vector<Stroke> strokes;
     std::vector<std::vector<Stroke>> strokes_by_range;
 
     // regarding input file
-    std::string path;
-    std::string file_name;
+    std::string drawing_file_name;
     char color;
-    std::string file_extension;
-    std::string file_name_full;
+    std::string drawing_file_name_full;
 
     // regarding drawing size
     std::vector<double> size; // width, height
     double target_size = 0.5; // target height
     double ratio;
-    geometry_msgs::Pose drawing_pose;
+    geometry_msgs::Pose init_drawing_pose;
 
     // regarding range splitting
     double max_range = 0.45;  // max range width
@@ -48,14 +42,14 @@ class DrawingInput {
     std::vector<double> diffs;
 
     // regarding wall file and arbitrary drawing
-    std::string wall_name;
+    std::string wall_file_name;
+    std::vector<double> wall_position; // x, y, z
     std::vector<double> wall_size; // width,height
     KDTree kdtree;
 
 
     // functions
-    void setFileName(const std::string path, const std::string file_name,
-                                  const char color, const std::string file_extension);
+    void setFileName(const std::string file_name, const char color);
     void setTargetSize (const double target_size);
     void setDrawingSize (const double ratio);
     void setCanvasRange ();

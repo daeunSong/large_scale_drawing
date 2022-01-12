@@ -2,24 +2,21 @@
 
 #define PI 3.14159265
 
-DrawingInput::DrawingInput(const std::string &path, const std::string &file_name,
-                                  const char &color, const std::string &file_extension,
-                                  const geometry_msgs::Pose &drawing_pose) {
-  setFileName(path, file_name, color, file_extension);
-  this->drawing_pose = drawing_pose;
+DrawingInput::DrawingInput(const std::string &drawing_file_name,
+                                  const char &color, const geometry_msgs::Pose &init_drawing_pose) {
+  setFileName(drawing_file_name, color);
+  this->init_drawing_pose = init_drawing_pose;
   readDrawingFile();
   removeLongLine();
   if (this->size[0] > 0.55)
     splitByRange();
 }
 
-DrawingInput::DrawingInput(const std::string &wall_name_, const std_msgs::Float64MultiArray &ri_ranges, 
-                                  const std::string &path, const std::string &file_name,
-                                  const char &color, const std::string &file_extension,
-                                  const geometry_msgs::Pose &drawing_pose) {
-  setFileName(path, file_name, color, file_extension);
-  this->wall_name = wall_name_;
-  this->drawing_pose = drawing_pose;
+DrawingInput::DrawingInput(const std::string &wall_file_name_, const std::string &drawing_file_name,
+                                  const char &color, const geometry_msgs::Pose &init_drawing_pose) {
+  setFileName(drawing_file_name, color);
+  this->wall_file_name = wall_file_name_;
+  this->init_drawing_pose = init_drawing_pose;
   std::cout << "Drawing Input file setting Done\n";
   setKDTree();
   std::cout << "Set KDTree Done\n";
@@ -27,18 +24,14 @@ DrawingInput::DrawingInput(const std::string &wall_name_, const std_msgs::Float6
   std::cout << "Get Strokes Ready Done \n";
   removeLongLine();
   std::cout << "Cut long lines Done\n";
-  if (this->size[0] > 0.55)
-    splitByRangeArb(ri_ranges);
+//  if (this->size[0] > 0.55)
+//    splitByRangeArb(ri_ranges);
 }
 
-
-void DrawingInput::setFileName(const std::string path, const std::string file_name,
-                                  const char color, const std::string file_extension) {
-  this->path = path;
-  this->file_name = file_name;
+void DrawingInput::setFileName(const std::string drawing_file_name, const char color) {
+  this->drawing_file_name = drawing_file_name;
   this->color = color;
-  this->file_extension = file_extension;
-  this->file_name_full = path + file_name + color + file_extension;
+  this->drawing_file_name_full = drawing_file_name + color + ".txt";
 }
 
 void DrawingInput::setTargetSize (const double target_size) {
@@ -57,7 +50,7 @@ void DrawingInput::setDrawingSize (const double ratio) {
 void DrawingInput::readDrawingFile() {
   std::string line;
 
-  std::ifstream txt(ros::package::getPath("large_scale_drawing")+this->file_name_full);
+  std::ifstream txt(ros::package::getPath("large_scale_drawing") + "/input" + this->drawing_file_name_full);
   // check if text file is well opened
   if(!txt.is_open()){
     std::cout << "FILE NOT FOUND\n";
@@ -72,7 +65,7 @@ void DrawingInput::readDrawingFile() {
 
   double y, z;
   Stroke stroke;
-  geometry_msgs::Pose drawing_pose = this->drawing_pose;
+  geometry_msgs::Pose init_drawing_pose = this->init_drawing_pose;
 
   while(std::getline(txt, line)) {
     if(line == "End") { // stroke finished
@@ -83,10 +76,10 @@ void DrawingInput::readDrawingFile() {
     else { // start reading strokes
       tempSplit = split(line, ' ');
       y = (-stod(tempSplit[0])+0.5) * this->ratio * this->target_size;
-      z = (-stod(tempSplit[1])+0.5) * this->target_size + this->drawing_pose.position.z;
-      drawing_pose.position.y = y;
-      drawing_pose.position.z = z;
-      stroke.push_back(drawing_pose);
+      z = (-stod(tempSplit[1])+0.5) * this->target_size + this->init_drawing_pose.position.z;
+      init_drawing_pose.position.y = y;
+      init_drawing_pose.position.z = z;
+      stroke.push_back(init_drawing_pose);
     }
   }
 }
@@ -228,7 +221,7 @@ void DrawingInput::setKDTree(){
   bool assigned = false;
 
   // read file
-  std::ifstream infile(ros::package::getPath("large_scale_drawing")+this->wall_name);
+  std::ifstream infile(ros::package::getPath("large_scale_drawing") + "/wall/" + this->wall_file_name + ".obj");
   std::string line_;  // line read
   while (std::getline(infile, line_))
   {
@@ -273,14 +266,12 @@ void DrawingInput::setKDTree(){
 void DrawingInput::readDrawingFileArb(){
   std::string line;
 
-  std::ifstream txt(ros::package::getPath("large_scale_drawing")+this->file_name_full);
+  std::ifstream txt(ros::package::getPath("large_scale_drawing") + "/input" + this->drawing_file_name_full);
   // check if text file is well opened
   if(!txt.is_open()){
     ROS_INFO("FILE NOT FOUND");
     return;
   }
-
-  std::cout << "File FOUND\n";
 
   // first line indicates the size
   std::getline(txt, line); // drawing size
@@ -292,7 +283,7 @@ void DrawingInput::readDrawingFileArb(){
   double x, y, z;
   point_t pt, orientation;
   Stroke stroke;
-  geometry_msgs::Pose drawing_pose;
+  geometry_msgs::Pose init_drawing_pose;
 
   std::cout << "Start reading drawing file\n";
 
@@ -307,19 +298,19 @@ void DrawingInput::readDrawingFileArb(){
 
       tempSplit = split(line, ' ');
       y = (-stod(tempSplit[0])+0.5) * this->ratio * this->target_size;
-      z = (-stod(tempSplit[1])+0.5) * this->target_size + this->drawing_pose.position.z;
+      z = (-stod(tempSplit[1])+0.5) * this->target_size + this->init_drawing_pose.position.z;
       pt.push_back(y); pt.push_back(z);
 
       tie(x, orientation) = getXAndQuaternion(pt);
 
-      drawing_pose.position.x = x;
-      drawing_pose.position.y = y;
-      drawing_pose.position.z = z;
-      drawing_pose.orientation.x = orientation[0];
-      drawing_pose.orientation.y = orientation[1];
-      drawing_pose.orientation.z = orientation[2];
-      drawing_pose.orientation.w = orientation[3];
-      stroke.push_back(drawing_pose);
+      init_drawing_pose.position.x = x;
+      init_drawing_pose.position.y = y;
+      init_drawing_pose.position.z = z;
+      init_drawing_pose.orientation.x = orientation[0];
+      init_drawing_pose.orientation.y = orientation[1];
+      init_drawing_pose.orientation.z = orientation[2];
+      init_drawing_pose.orientation.w = orientation[3];
+      stroke.push_back(init_drawing_pose);
     }
   }
 }
