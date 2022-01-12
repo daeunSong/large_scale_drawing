@@ -14,7 +14,7 @@ class Ridgeback:
     def __init__(self):
 
         #init
-        self.iiwa_state = 1
+        self.iiwa_state = "0"
 
         self.publisher_pose = rospy.Publisher('/iiwa_ridgeback_communicaiton/ridgeback/pose', Pose, queue_size=10)
         self.publisher_state = rospy.Publisher('/iiwa_ridgeback_communicaiton/ridgeback/state', String, queue_size=10)
@@ -30,7 +30,7 @@ class Ridgeback:
 
         #config
         self.wall_file_name = rospy.get_param('/wall_file_name')
-        self.wall_position = rospy.get_param('/wall_position')
+        self.wall_pose = rospy.get_param('/wall_pose')
 
     def euler_from_quaternion(self, orientation_list):
 
@@ -124,7 +124,7 @@ class Ridgeback:
 
             self.fixed_rotate(0)
 
-            result = self.fixed_goal(path[i][0] + self.wall_position[0], path[i][1] + self.wall_position[1])
+            result = self.fixed_goal(path[i][0] + self.wall_pose[0], path[i][1] + self.wall_pose[1])
 
             if result:
                 rospy.loginfo("Goal execution done!")

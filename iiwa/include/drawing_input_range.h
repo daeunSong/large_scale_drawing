@@ -43,7 +43,7 @@ class DrawingInput {
 
     // regarding wall file and arbitrary drawing
     std::string wall_file_name;
-    std::vector<double> wall_position; // x, y, z
+    std::vector<double> wall_pose; // x, y, z, x, y, z, w
     std::vector<double> wall_size; // width,height
     KDTree kdtree;
 

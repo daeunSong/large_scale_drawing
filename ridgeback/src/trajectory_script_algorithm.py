@@ -155,7 +155,7 @@ class Candidate:
                 else:
                     continue
                 id += 1
-        print('points generated. Time:', time.time() - start, len(IR))
+        # print('points generated. Time:', time.time() - start, len(IR))
         return IR
 
     def delete_c(self, c):
@@ -191,7 +191,7 @@ def max_coverage(wall, C):
 
     
 def greedy_cover_iiwa(wall, C):
-    print('in greedy')
+    # print('in greedy')
     t_start = time.time()
     steps = []
     while not wall.allcovered():
