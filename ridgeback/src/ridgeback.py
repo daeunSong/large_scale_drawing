@@ -24,11 +24,10 @@ class Ridgeback:
         self.subscriber_odom = rospy.Subscriber("/odometry/filtered", Odometry, self.callback_odom)
         self.subscriber_iiwa = rospy.Subscriber("/iiwa_ridgeback_communicaiton/iiwa", String, self.callback_iiwa)
         self.state = 0
-        self.linear_speed = 0.02
-        self.kp = 0.05 # angular speed
+        self.linear_speed = 0.1
+        self.kp = 0.01 # angular speed
         self.reached = False
         self.i = 0
-        self.yaw = 0
 
         #config
         self.wall_file_name = rospy.get_param('/wall_file_name')
@@ -68,7 +67,7 @@ class Ridgeback:
 
         # TODO: angle..
         (roll, pitch, self.yaw) = self.euler_from_quaternion(orientation_list)
-        if self.yaw<0:
+        if self.yaw < 0:
             angle = -self.yaw*180/math.pi
         else:
             angle = 360-self.yaw*180/math.pi
@@ -130,10 +129,11 @@ class Ridgeback:
             if result:
                 rospy.loginfo("Goal execution done!")
                 rospy.loginfo("Rotating to calculated angle >>")
-                if angles[i][0] == 'l':
-                    self.fixed_rotate(abs(float(angles[i][2:]))+180)
-                else:
-                    self.fixed_rotate(360 - abs(float(angles[i][2:])))
+                self.fixed_rotate(angles[i])
+                # if angles[i][0] == 'l':
+                #     self.fixed_rotate(abs(float(angles[i][2:]))+180)
+                # else:
+                #     self.fixed_rotate(360 - abs(float(angles[i][2:])))
                 rospy.loginfo("DONE rotating >>")
                 self.publish_state(self.state)
                 self.state += 1
@@ -160,17 +160,24 @@ class Ridgeback:
     def fixed_rotate(self, target_angle):
         command =Twist()
 
-        if 0<=target_angle<=180:
-            real_target = -target_angle
+        if 0 <= target_angle <= 180:
+            real_target = target_angle
+        elif 180 < target_angle <= 360:
+            real_target = 180 - target_angle
+        elif -360 <= target_angle <= -180:
+            real_target = target_angle + 360
         else:
-            real_target = 360-target_angle
+            real_target = target_angle
 
         while True:
-            target_rad = real_target*math.pi/180
-            command.angular.z = self.kp * (target_rad-self.yaw)
+            target_rad = real_target*math.pi/180 # radian
+            if target_rad-self.yaw > 0:
+                command.angular.z = self.kp
+            if target_rad-self.yaw < 0:
+                command.angular.z = self.kp * (-1)
             self.publisher_cmd_vel.publish(command)
 
-            if abs(self.yaw*180/math.pi-real_target)<1:
+            if abs(self.yaw*180/math.pi - real_target) < 0.1:
                 break
 
     def set_message(self, path_x, path_y, path_angle):
@@ -179,12 +186,10 @@ class Ridgeback:
         pose = Pose()
 
         # NOT QUATERNION. orientation x is the theta value of z-rotation
-        if path_angle[0] == 'l':
-            q.x = abs(float(path_angle[2:]))+180
-            print(q.z)
-        else:
-            q.x = 360 - abs(float(path_angle[2:]))
-            print(q.z)
+        p.x = path_x
+        p.y = path_y
+        p.z = 0
+        q.x = path_angle
 
         pose.position = p
         pose.orientation = q

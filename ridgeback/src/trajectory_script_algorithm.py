@@ -297,8 +297,10 @@ def to_gazebo_cmd_format(steps):
         path_y.append(s.r_center[1])
         # angle
         if s.direction is 'r':
-            path_angle.append(-math.degrees(s.angle))
+            # path_angle.append(-s.angle) # radian
+            path_angle.append(-math.degrees(s.angle)) # euler
         elif s.direction is 'l':
+            # path_angle.append(s.angle)
             path_angle.append(math.degrees(s.angle))
 
     return min_y_list, max_y_list, path_x, path_y, path_angle
