@@ -16,20 +16,19 @@ class Iidgeback:
         self.wall = wall
 
     def set_angle(self):
-
-        self.cover_point.sort()
+        self.cover_point.sort(key=lambda x:x[1]) # sort with y
         x1, y1 = self.cover_point[0]
         x2, y2 = self.cover_point[-1]
 
         hypot = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
-        angle = math.acos((x2-x1)/hypot)
+        angle = math.acos(abs(x2-x1)/hypot)
         self.angle = math.pi/2 - angle
-        if y1 < y2:
+        if x2 < x1:
             self.direction = 'l'
-            print('left')
+            # print('left')
         else:
             self.direction = 'r'
-            print('right')
+            # print('right')
         print('--------------------angle: ',math.degrees(self.angle))
         self.set_ridgeback()
 
@@ -39,20 +38,20 @@ class Iidgeback:
         x1, y1 = self.cover_point[0]
         x2, y2 = self.cover_point[-1]
         direction = (y2-y1)/(x2-x1)
-        if direction >= 0:
-            self.r_center[0] = self.i_center[0] + hypot*math.cos(self.angle)
-            self.r_center[1] = self.i_center[1] - hypot*math.sin(self.angle)
-            if not self.ridgeback_can_go(self.wall):
-                self.r_center[0] = self.i_center[0] + hypot * math.cos(self.angle)
-            if not self.ridgeback_can_go(self.wall):
-                self.r_center[1] = self.i_center[1] + hypot*math.sin(self.angle)
-        else:
+        if direction >= 0:  # turn right
+            self.r_center[0] = self.i_center[0] - hypot*math.cos(self.angle)
+            self.r_center[1] = self.i_center[1] + hypot*math.sin(self.angle)
+            # if not self.ridgeback_can_go(self.wall):
+            #     self.r_center[0] = self.i_center[0] + hypot * math.cos(self.angle)
+            # if not self.ridgeback_can_go(self.wall):
+            #     self.r_center[1] = self.i_center[1] + hypot*math.sin(self.angle)
+        else: # turn left
             self.r_center[0] = self.i_center[0] - hypot*math.cos(self.angle)
             self.r_center[1] = self.i_center[1] - hypot*math.sin(self.angle)
-            if not self.ridgeback_can_go(self.wall):
-                self.r_center[0] = self.i_center[0] + hypot * math.cos(self.angle)
-            if not self.ridgeback_can_go(self.wall):
-                self.r_center[1] = self.i_center[1] + hypot*math.sin(self.angle)
+            # if not self.ridgeback_can_go(self.wall):
+            #     self.r_center[0] = self.i_center[0] + hypot * math.cos(self.angle)
+            # if not self.ridgeback_can_go(self.wall):
+            #     self.r_center[1] = self.i_center[1] + hypot*math.sin(self.angle)
 
     def in_limit(self, i, j):
         return False
@@ -227,27 +226,34 @@ def generate_interval(wall, count=1):
 
 def setting(circle):
     print('c:', circle.r_center)
-    return circle.r_center[0]
+    return circle.r_center[1]
 
 def open_wall_file(filename, fileext="obj"):
     import rospkg
     rospack = rospkg.RosPack()
     package_path = rospack.get_path('large_scale_drawing')
 
-    point = []
     wall = []
+    min_y = min_z = 1000
+    max_y = max_z = -1000
 
     with open(package_path + '/wall/' + filename + '.' + fileext) as f:
         for line in f:
-            if line[0] != 'v' or line[:2] == 'vn':
-                continue
-            for word in line.split():
-                if word == 'v':
-                    point = []
-                    continue
-                else:
-                    point.append(float(word))
-            wall.append(point)
+            line = line.split()
+            if line[0] == 'v': # vertex
+                point = list(map(float,line[1:]))
+                wall.append(point)
+                min_y = min (min_y, point[1])
+                min_z = min (min_z, point[2])
+                max_y = max (max_y, point[1])
+                max_z = max (max_z, point[2])
+
+    # Make y = 0 as the center of the wall coordinate and z = 0 as the bottom of the wall
+    mid_y = (min_y + max_y)/2
+    for i, point in enumerate(wall):
+        wall[i][1] += - mid_y
+        wall[i][2] += - min_z
+
     return wall
 
 def plot_wall_draw(wall, size=0.4):
@@ -262,12 +268,12 @@ def plot_wall_draw(wall, size=0.4):
     z_wall = list(np.array(wall).T[2])
 
     if len([i for i in x_wall[:10] if i==0]) > 3:
-        z_wall = [-z for z in z_wall]
+        z_wall = [z for z in z_wall]
         # plt.scatter(y_wall, z_wall, c='indigo', s=size, marker=marker_shape)
         print('zero: x')
         return y_wall, z_wall
     elif len([i for i in y_wall[:10] if i==0]) > 3:
-        z_wall = [-z for z in z_wall]
+        z_wall = [z for z in z_wall]
         # plt.scatter(x_wall, z_wall, c='indigo', s=size, marker=marker_shape)
         print('zero: y')
         return x_wall, z_wall
@@ -279,27 +285,30 @@ def plot_wall_draw(wall, size=0.4):
     print('done')
 
 def to_gazebo_cmd_format(steps):
-    sorted_path = sorted(steps, key=setting)
-    min_x_list, max_x_list= [], []
+    # sort path +y to -y
+    sorted_path = sorted(steps, key=setting, reverse=True)
+    min_y_list, max_y_list= [], []
     path_x, path_y = [], []
     path_angle = []
     for s in sorted_path:
-        min_x_list.append(s.cover_point[0][0])
-        max_x_list.append(s.cover_point[-1][0])
+        min_y_list.append(s.cover_point[-1][1])
+        max_y_list.append(s.cover_point[0][1])
         path_x.append(s.r_center[0])
-    for s in sorted_path:
         path_y.append(s.r_center[1])
-    for s in sorted_path:
-        path_angle.append(s.direction+' '+str(math.degrees(s.angle)))
+        # angle
+        if s.direction is 'r':
+            path_angle.append(-math.degrees(s.angle))
+        elif s.direction is 'l':
+            path_angle.append(math.degrees(s.angle))
 
-    return min_x_list, max_x_list, path_x, path_y, path_angle
+    return min_y_list, max_y_list, path_x, path_y, path_angle
 
-def to_iiwa_range(min_x_list, max_x_list):
+def to_iiwa_range(min_y_list, max_y_list):
     to_iiwa=[]
-    to_iiwa.append(min_x_list[0])
-    for i in range(len(min_x_list)-1):
-        to_iiwa.append((max_x_list[i]+min_x_list[i+1])/2)
-    to_iiwa.append(min_x_list[-1])
+    to_iiwa.append(min_y_list[0])
+    for i in range(len(min_y_list)-1):
+        to_iiwa.append((max_y_list[i]+min_y_list[i+1])/2)
+    to_iiwa.append(min_y_list[-1])
     # print('\nto iiwa:')
     # print(to_iiwa)
     return to_iiwa
@@ -331,11 +340,11 @@ def run_algorithm(file_name = 'bee_hive_three'):
     print('Candidates generated')
     steps = greedy_cover_iiwa(wall, C)
 
-    min_x_list, max_x_list, path_x, path_y, path_angle = to_gazebo_cmd_format(steps)
+    min_y_list, max_y_list, path_x, path_y, path_angle = to_gazebo_cmd_format(steps)
 
-    iiwa_range_list = to_iiwa_range(min_x_list, max_x_list)
-    # print(min_x_list)
-    # print(max_x_list)
+    iiwa_range_list = to_iiwa_range(min_y_list, max_y_list)
+    # print(min_y_list)
+    # print(max_y_list)
     
     print(iiwa_range_list)
     print(path_angle)
@@ -345,7 +354,7 @@ def run_algorithm(file_name = 'bee_hive_three'):
     plt.plot(x, y, color="grey")
     plt.gca().set_aspect('equal', adjustable='box')
     plt.show()
-    return path_angle, iiwa_range_list, path_x, path_y
+    return iiwa_range_list, path_x, path_y, path_angle
 
 if __name__ == "__main__":
     run_algorithm()
