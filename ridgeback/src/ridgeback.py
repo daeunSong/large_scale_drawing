@@ -24,9 +24,11 @@ class Ridgeback:
         self.subscriber_odom = rospy.Subscriber("/odometry/filtered", Odometry, self.callback_odom)
         self.subscriber_iiwa = rospy.Subscriber("/iiwa_ridgeback_communicaiton/iiwa", String, self.callback_iiwa)
         self.state = 0
-        self.linear_speed = 0.1
+        self.linear_speed = 0.02
+        self.kp = 0.05 # angular speed
         self.reached = False
         self.i = 0
+        self.yaw = 0
 
         #config
         self.wall_file_name = rospy.get_param('/wall_file_name')
@@ -55,7 +57,6 @@ class Ridgeback:
         # print('iiwa state is:',self.iiwa_state)
 
     def callback_odom(self, msg):
-
         # get position
         pose_position = msg.pose.pose.position
         self.position_x = pose_position.x
@@ -65,6 +66,7 @@ class Ridgeback:
         self.orientation_q = msg.pose.pose.orientation
         orientation_list = [self.orientation_q.x, self.orientation_q.y, self.orientation_q.z, self.orientation_q.w]
 
+        # TODO: angle..
         (roll, pitch, self.yaw) = self.euler_from_quaternion(orientation_list)
         if self.yaw<0:
             angle = -self.yaw*180/math.pi
@@ -74,7 +76,6 @@ class Ridgeback:
         self.rad = math.radians(angle)
 
     def fixed_goal(self, goal_x, goal_y):
-
         self.publish_state('0')
         print(f'Executing ridgeback drawing #{self.state}')
         cmd = Twist()
@@ -148,7 +149,6 @@ class Ridgeback:
         self.publisher_state.publish(s)
 
     def publish_pose(self):
-        
         P = Pose()
         P.position.x = self.position_x
         P.position.y = self.position_y
@@ -156,9 +156,8 @@ class Ridgeback:
 
         self.publisher_pose.publish(P)
 
+    # TODO: angle should be right-hand coordinated
     def fixed_rotate(self, target_angle):
-
-        kp=0.5
         command =Twist()
 
         if 0<=target_angle<=180:
@@ -168,7 +167,7 @@ class Ridgeback:
 
         while True:
             target_rad = real_target*math.pi/180
-            command.angular.z = kp * (target_rad-self.yaw)
+            command.angular.z = self.kp * (target_rad-self.yaw)
             self.publisher_cmd_vel.publish(command)
 
             if abs(self.yaw*180/math.pi-real_target)<1:
@@ -195,11 +194,11 @@ class Ridgeback:
 
     def publish_trajectory(self):
         
-        self.path_angle, self.iiwa_range_list, self.path_x, self.path_y = run_algorithm(self.wall_file_name)
-        # self.path_angle = ['r 89.37040139158931', 'r 89.39130280006657', 'l 75.29755656189036', 'l 89.92431209222858', 'r 86.66614933846336']
-        # self.path_x = [-0.7317906780332951, -0.24249885635724658, 0.6170393555947162, 0.6190568022482837, 1.2094769258297666]
-        # self.path_y =  [0.9150482989706723, 1.0910451453734287, 0.9321944559001386, 1.0830006980196745, 0.9553538934110108]
-        # self.iiwa_range_list = [-0.73, -0.5335, 0.1475, 0.3665, 0.9775, 0.96]
+        self.iiwa_range_list, self.path_x, self.path_y, self.path_angle, = run_algorithm(self.wall_file_name)
+        # self.path_angle = [-19.093492000485618, 12.952764513375516, -5.0169210365447965, 0.18131515269900042, 3.7499776558565516, -15.300845572449994, 18.520210336643274]
+        # self.path_x = [-0.9469888587522066, -1.1016441492919198, -0.9879351321080001, -1.12599599426178, -0.989287158995493, -1.0846428192865074, -0.951569336916289]
+        # self.path_y =  [1.4286884511065332, 0.5406818456628585, 0.4969599543453588, 0.004468367106766491, -0.46532219206899283, -0.48189017208199314, -1.3991113163367221]
+        # self.iiwa_range_list = [1.297, 0.892, 0.677, 0.159, -0.14450000000000002, -0.6615, -0.8785000000000001, -0.894]
 
         message= PoseArray()
         pose_list = []
