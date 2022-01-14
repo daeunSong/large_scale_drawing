@@ -93,8 +93,8 @@ void MarkerPublisher::trajCallback(const geometry_msgs::PoseArray::ConstPtr& msg
     // translation
     pose.translation().x() = trajectories.poses[i].position.x + wall_pose[0];
     pose.translation().y() = trajectories.poses[i].position.y + wall_pose[1];
-    // rotation (we have sent z-axis rotation angle in orientation.x)
-    pose = pose * Eigen::AngleAxisd(trajectories.poses[i].orientation.x * 2 * M_PI, Eigen::Vector3d::UnitZ());
+    // rotation (we have sent z-axis rotation angle in orientation.x, euler given radian needed)
+    pose = pose * Eigen::AngleAxisd(trajectories.poses[i].orientation.x * M_PI / 180, Eigen::Vector3d::UnitZ());
     this->visual_tools_->publishAxis(pose);
   }
   this->visual_tools_->trigger();
