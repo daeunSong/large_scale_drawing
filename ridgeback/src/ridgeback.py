@@ -80,7 +80,6 @@ class Ridgeback:
         cmd = Twist()
 
         while not self.reached:
-
             x_move = goal_x-self.position_x
             y_move = goal_y-self.position_y
             self.i +=1
@@ -92,7 +91,8 @@ class Ridgeback:
                                         [math.sin(self.rad), math.cos(self.rad)]])
 
             r_goal = np.matmul(rotation_matrix, goal)
-            dist = self.calculate_distance(r_goal)
+            r_goal = r_goal / np.linalg.norm(r_goal) # needs to be unit vector
+            dist = self.calculate_distance(goal)
             
             if not self.reached:
                 if dist > 0.3:
