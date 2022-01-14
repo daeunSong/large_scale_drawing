@@ -124,7 +124,7 @@ int main (int argc, char **argv) {
   bool ready_to_draw = false;
 
   // Drawing inputs
-  DrawingInput drawing_k("/input/","quat1_",'k',".txt", drawing_point);
+  DrawingInput drawing_k("/data/input/","quat1_",'k',".txt", drawing_point);
 
   int range_num = drawing_k.strokes_by_range.size();
   int j = 0;

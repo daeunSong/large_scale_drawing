@@ -67,7 +67,7 @@ void MarkerPublisher::initWall() {
   wall_marker.color.b = 0.933;
 
   //only if using a MESH_RESOURCE marker type:
-  wall_marker.mesh_resource = "package://large_scale_drawing/wall/"+wall_file_name+".obj";
+  wall_marker.mesh_resource = "package://large_scale_drawing/data/wall/"+wall_file_name+".obj";
   marker_pub.publish(wall_marker);
 }
 

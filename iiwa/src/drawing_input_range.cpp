@@ -13,9 +13,11 @@ DrawingInput::DrawingInput(const std::string &drawing_file_name,
 }
 
 DrawingInput::DrawingInput(const std::string &wall_file_name_, const std::string &drawing_file_name,
-                                  const char &color, const geometry_msgs::Pose &init_drawing_pose) {
+                                  const char &color, const geometry_msgs::Pose &init_drawing_pose,
+                                  const std::vector<double> wall_pose_) {
   setFileName(drawing_file_name, color);
   this->wall_file_name = wall_file_name_;
+  this->wall_pose = wall_pose_;
   this->init_drawing_pose = init_drawing_pose;
   std::cout << "Drawing Input file setting Done\n";
   setKDTree();
@@ -50,7 +52,7 @@ void DrawingInput::setDrawingSize (const double ratio) {
 void DrawingInput::readDrawingFile() {
   std::string line;
 
-  std::ifstream txt(ros::package::getPath("large_scale_drawing") + "/input" + this->drawing_file_name_full);
+  std::ifstream txt(ros::package::getPath("large_scale_drawing") + "/data/input" + this->drawing_file_name_full);
   // check if text file is well opened
   if(!txt.is_open()){
     std::cout << "FILE NOT FOUND\n";
@@ -65,7 +67,7 @@ void DrawingInput::readDrawingFile() {
 
   double y, z;
   Stroke stroke;
-  geometry_msgs::Pose init_drawing_pose = this->init_drawing_pose;
+  geometry_msgs::Pose drawing_pose = this->init_drawing_pose;
 
   while(std::getline(txt, line)) {
     if(line == "End") { // stroke finished
@@ -77,9 +79,9 @@ void DrawingInput::readDrawingFile() {
       tempSplit = split(line, ' ');
       y = (-stod(tempSplit[0])+0.5) * this->ratio * this->target_size;
       z = (-stod(tempSplit[1])+0.5) * this->target_size + this->init_drawing_pose.position.z;
-      init_drawing_pose.position.y = y;
-      init_drawing_pose.position.z = z;
-      stroke.push_back(init_drawing_pose);
+      drawing_pose.position.y = y;
+      drawing_pose.position.z = z;
+      stroke.push_back(drawing_pose);
     }
   }
 }
@@ -221,7 +223,7 @@ void DrawingInput::setKDTree(){
   bool assigned = false;
 
   // read file
-  std::ifstream infile(ros::package::getPath("large_scale_drawing") + "/wall/" + this->wall_file_name + ".obj");
+  std::ifstream infile(ros::package::getPath("large_scale_drawing") + "/data/wall/" + this->wall_file_name + ".obj");
   std::string line_;  // line read
   while (std::getline(infile, line_))
   {
@@ -266,7 +268,7 @@ void DrawingInput::setKDTree(){
 void DrawingInput::readDrawingFileArb(){
   std::string line;
 
-  std::ifstream txt(ros::package::getPath("large_scale_drawing") + "/input" + this->drawing_file_name_full);
+  std::ifstream txt(ros::package::getPath("large_scale_drawing") + "/data/input" + this->drawing_file_name_full);
   // check if text file is well opened
   if(!txt.is_open()){
     ROS_INFO("FILE NOT FOUND");
@@ -283,7 +285,7 @@ void DrawingInput::readDrawingFileArb(){
   double x, y, z;
   point_t pt, orientation;
   Stroke stroke;
-  geometry_msgs::Pose init_drawing_pose;
+  geometry_msgs::Pose drawing_pose;
 
   std::cout << "Start reading drawing file\n";
 
@@ -303,14 +305,14 @@ void DrawingInput::readDrawingFileArb(){
 
       tie(x, orientation) = getXAndQuaternion(pt);
 
-      init_drawing_pose.position.x = x;
-      init_drawing_pose.position.y = y;
-      init_drawing_pose.position.z = z;
-      init_drawing_pose.orientation.x = orientation[0];
-      init_drawing_pose.orientation.y = orientation[1];
-      init_drawing_pose.orientation.z = orientation[2];
-      init_drawing_pose.orientation.w = orientation[3];
-      stroke.push_back(init_drawing_pose);
+      drawing_pose.position.x = x + this->wall_pose[0];
+      drawing_pose.position.y = y + this->wall_pose[1];
+      drawing_pose.position.z = z;
+      drawing_pose.orientation.x = orientation[0];
+      drawing_pose.orientation.y = orientation[1];
+      drawing_pose.orientation.z = orientation[2];
+      drawing_pose.orientation.w = orientation[3];
+      stroke.push_back(drawing_pose);
     }
   }
 }
@@ -384,7 +386,7 @@ std::tuple<double, point_t> DrawingInput::getXAndSurfaceNormal(point_t &pt){
   double fy2 = (coor[1][1]-pt[0])*coor[3][0] + (pt[0]-coor[0][1])*coor[2][0];
   fy2 = fy2/(coor[1][1]-coor[0][1]);
   double x = (coor[3][2]-pt[1])*fy1 + (pt[1]-coor[0][2])*fy2;
-  x = x/(coor[3][2]-coor[0][2]) + 0.82;
+  x = x/(coor[3][2]-coor[0][2]);
 
   point_t sn;
   for(int i = 0; i < 3; i++){
@@ -584,17 +586,17 @@ std::vector<std::vector<double>> DrawingInput::matrixInv(const std::vector<std::
   return inv;
 }
 
-void DrawingInput::relocateDrawingsArb(geometry_msgs::Pose &ridgeback, int range_index){
+void DrawingInput::relocateDrawingsArb(geometry_msgs::Pose &ridegeback_pose, int range_index){
   // use ridgeback's position and orientation + wall spawn loaction to change world coordinate system to local coordinate system
   ROS_INFO("Calculate Transformation Matrix");
   
-  double rad = ridgeback.orientation.x * PI / 180.0;
+  double rad = ridegeback_pose.orientation.x * PI / 180.0;
   // calculate transformation matrix
   std::cout << "T\n";
   std::vector<std::vector<double>> T; // translation matrix
-  T.push_back({1,0,0,ridgeback.position.x});
-  T.push_back({0,1,0,ridgeback.position.y});
-  T.push_back({0,0,1,ridgeback.position.z});
+  T.push_back({1,0,0,ridegeback_pose.position.x});
+  T.push_back({0,1,0,ridegeback_pose.position.y});
+  T.push_back({0,0,1,ridegeback_pose.position.z});
   T.push_back({0,0,0,1});
   std::cout << "R\n";
 

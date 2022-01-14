@@ -237,7 +237,7 @@ def open_wall_file(filename, fileext="obj"):
     min_y = min_z = 1000
     max_y = max_z = -1000
 
-    with open(package_path + '/wall/' + filename + '.' + fileext) as f:
+    with open(package_path + '/data/wall/' + filename + '.' + fileext) as f:
         for line in f:
             line = line.split()
             if line[0] == 'v': # vertex

@@ -125,10 +125,10 @@ int main (int argc, char **argv) {
   bool ready_to_draw = false;
 
   // Drawing inputs
-  DrawingInput drawing_c("/input/ewha/","ewha_full_path_",'c',".txt", drawing_point);
-  DrawingInput drawing_m("/input/ewha/","ewha_full_path_",'m',".txt", drawing_point);
-  DrawingInput drawing_y("/input/ewha/","ewha_full_path_",'y',".txt", drawing_point);
-  DrawingInput drawing_k1("/input/ewha/","ewha_full_path_",'k',".txt", drawing_point);
+  DrawingInput drawing_c("/data/input/ewha/","ewha_full_path_",'c',".txt", drawing_point);
+  DrawingInput drawing_m("/data/input/ewha/","ewha_full_path_",'m',".txt", drawing_point);
+  DrawingInput drawing_y("/data/input/ewha/","ewha_full_path_",'y',".txt", drawing_point);
+  DrawingInput drawing_k1("/data/input/ewha/","ewha_full_path_",'k',".txt", drawing_point);
 
   // send color
   geometry_msgs::Point cyan, magenta, yellow, black;

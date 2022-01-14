@@ -14,7 +14,7 @@ class Ridgeback:
     def __init__(self):
 
         #init
-        self.iiwa_state = "0"
+        self.iiwa_state = "0" # ridgeback moves first to the first drawing pose
 
         self.publisher_pose = rospy.Publisher('/iiwa_ridgeback_communicaiton/ridgeback/pose', Pose, queue_size=10)
         self.publisher_state = rospy.Publisher('/iiwa_ridgeback_communicaiton/ridgeback/state', String, queue_size=10)
@@ -22,9 +22,9 @@ class Ridgeback:
         self.publisher_traj = rospy.Publisher('/iiwa_ridgeback_communicaiton/trajectory', PoseArray, queue_size=100)
         self.publisher_cmd_vel = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
         self.subscriber_odom = rospy.Subscriber("/odometry/filtered", Odometry, self.callback_odom)
-        self.subscriber_iiwa = rospy.Subscriber("/iiwa_ridgeback_communicaiton/iiwa", String, self.callback_iiwa)
+        self.subscriber_iiwa = rospy.Subscriber("/iiwa_ridgeback_communicaiton/iiwa/state", String, self.callback_iiwa)
         self.state = 0
-        self.linear_speed = 0.1
+        self.linear_speed = 0.05
         self.kp = 0.01 # angular speed
         self.reached = False
         self.i = 0
@@ -113,35 +113,28 @@ class Ridgeback:
         return math.sqrt(r_goal[0]**2+ r_goal[1]**2)
 
     def follow_trajectory(self, path, angles):
-
         for i in range(len(angles)):
-            while self.iiwa_state != "0":
-                rospy.sleep(1)
-                print(f'Waiting for iiwa to stop drawing: iiwa state #{self.iiwa_state}')
-            print(f'IIWA done executing #{self.iiwa_state}')
-
-            # print(f'i: {i}, x: {path[i][0]}, y: {path[i][1]}')
-
             self.fixed_rotate(0)
-
             result = self.fixed_goal(path[i][0] + self.wall_pose[0], path[i][1] + self.wall_pose[1])
 
             if result:
                 rospy.loginfo("Goal execution done!")
                 rospy.loginfo("Rotating to calculated angle >>")
                 self.fixed_rotate(angles[i])
-                # if angles[i][0] == 'l':
-                #     self.fixed_rotate(abs(float(angles[i][2:]))+180)
-                # else:
-                #     self.fixed_rotate(360 - abs(float(angles[i][2:])))
                 rospy.loginfo("DONE rotating >>")
-                self.publish_state(self.state)
-                self.state += 1
-                for j in range(20):
-                    self.publish_pose()
+                self.iiwa_state = "1"
+                # self.publish_state(self.state)
+                # self.state += 1
             else:
                 raise('unknown error')
-            rospy.sleep(5)
+
+            while self.iiwa_state != "0":
+                self.publish_pose()
+                rospy.sleep(1)
+                print(f'Waiting for iiwa to stop drawing: iiwa state #{self.iiwa_state}')
+                print(f'IIWA done executing #{self.iiwa_state}')
+
+            rospy.sleep(1)
 
     def publish_state(self, number):
         s = String()

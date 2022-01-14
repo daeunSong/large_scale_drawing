@@ -276,10 +276,10 @@ int main (int argc, char **argv)
 
 
   // Read darwing inputs
-  DrawingInput drawing_c("/input/ewha/","ewha_full_path_",'c',".txt", drawing_point);
-  DrawingInput drawing_m("/input/ewha/","ewha_full_path_",'m',".txt", drawing_point);
-  DrawingInput drawing_y("/input/ewha/","ewha_full_path_",'y',".txt", drawing_point);
-  DrawingInput drawing_k("/input/ewha/","ewha_full_path_",'k',".txt", drawing_point);
+  DrawingInput drawing_c("/data/input/ewha/","ewha_full_path_",'c',".txt", drawing_point);
+  DrawingInput drawing_m("/data/input/ewha/","ewha_full_path_",'m',".txt", drawing_point);
+  DrawingInput drawing_y("/data/input/ewha/","ewha_full_path_",'y',".txt", drawing_point);
+  DrawingInput drawing_k("/data/input/ewha/","ewha_full_path_",'k',".txt", drawing_point);
 
   int range_num = drawing_c.strokes_by_range.size();
 

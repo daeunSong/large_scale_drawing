@@ -20,7 +20,7 @@ class DrawingInput {
   public:
     DrawingInput(const std::string &, const char &, const geometry_msgs::Pose &);
     DrawingInput(const std::string &, const std::string &,
-                                  const char &, const geometry_msgs::Pose &);
+                                  const char &, const geometry_msgs::Pose &, const std::vector<double>);
 
     std::vector<Stroke> strokes;
     std::vector<std::vector<Stroke>> strokes_by_range;
@@ -74,5 +74,5 @@ class DrawingInput {
     void splitByRangeArb(const std_msgs::Float64MultiArray &ri_ranges);
     std::vector<std::vector<double>> matrixMult(const std::vector<std::vector<double>> &A, const std::vector<std::vector<double>> &B);
     std::vector<std::vector<double>> matrixInv(const std::vector<std::vector<double>> &m);
-    void relocateDrawingsArb(geometry_msgs::Pose &ridgeback, int range_index);
+    void relocateDrawingsArb(geometry_msgs::Pose &ridgeback_pose, int range_index);
 };
