@@ -1,6 +1,13 @@
 #include "marker_publisher.h"
 
 MarkerPublisher::MarkerPublisher() : nh("") {
+  // init visual tools
+  this->visual_tools_.reset(new rvt::RvizVisualTools("/odom", "/axes_marker"));
+  this->visual_tools_->loadMarkerPub();
+  // Clear messages
+  this->visual_tools_->deleteAllMarkers();
+  this->visual_tools_->enableBatchPublishing();
+
   initSubscriber();
   initPublisher();
   initMarker();
@@ -10,6 +17,7 @@ MarkerPublisher::MarkerPublisher() : nh("") {
 void MarkerPublisher::initSubscriber() {
   drawing_sub = nh.subscribe("/ready_to_draw", 10, &MarkerPublisher::drawCallback, this);
   color_sub = nh.subscribe("/drawing_color", 10, &MarkerPublisher::colorCallback, this);
+  traj_sub = nh.subscribe("/iiwa_ridgeback_communicaiton/trajectory", 100, &MarkerPublisher::trajCallback, this);
 }
 
 // Init publisher
@@ -30,7 +38,7 @@ void MarkerPublisher::initMarker() {
 }
 
 // init
-void MarkerPublisher::initWall(std::string wall_file_name, std::vector<double> wall_pose_) {
+void MarkerPublisher::initWall() {
   visualization_msgs::Marker wall_marker;
   wall_marker.header.frame_id = "/odom";
   wall_marker.header.stamp = ros::Time::now();
@@ -39,21 +47,16 @@ void MarkerPublisher::initWall(std::string wall_file_name, std::vector<double> w
   wall_marker.type = visualization_msgs::Marker::MESH_RESOURCE;
   wall_marker.action = visualization_msgs::Marker::ADD;
 
-  geometry_msgs::Pose wall_pose;
-  wall_pose.position.x = wall_pose_[0];
-  wall_pose.position.y = wall_pose_[1];
-  wall_pose.position.z = wall_pose_[2];
-  wall_pose.orientation.x = wall_pose_[3];
-  wall_pose.orientation.y = wall_pose_[4];
-  wall_pose.orientation.z = wall_pose_[5];
-  wall_pose.orientation.w = wall_pose_[6];
-//  wall_pose.orientation.w = wall_pose_[0];
-//  wall_pose.position.x = 0.850.85;
-//  wall_pose.position.y = 0.645; // TODO //drawing_coor.wall_center + (drawing_coor.ranges[0][0]+drawing_coor.ranges[0][1])/2;
-//  // 0.869999 + -0.225
-//  wall_pose.position.z = 0.0;
+  geometry_msgs::Pose marker_pose;
+  marker_pose.position.x = wall_pose[0];
+  marker_pose.position.y = wall_pose[1];
+  marker_pose.position.z = wall_pose[2];
+  marker_pose.orientation.x = wall_pose[3];
+  marker_pose.orientation.y = wall_pose[4];
+  marker_pose.orientation.z = wall_pose[5];
+  marker_pose.orientation.w = wall_pose[6];
 
-  wall_marker.pose = wall_pose;
+  wall_marker.pose = marker_pose;
   wall_marker.scale.x = 1.0;
   wall_marker.scale.y = 1.0;
   wall_marker.scale.z = 1.0;
@@ -77,6 +80,24 @@ void MarkerPublisher::drawCallback(const std_msgs::Bool::ConstPtr& msg){
 void MarkerPublisher::colorCallback(const geometry_msgs::Point::ConstPtr& msg){
   line_color = *msg;
   setColor();
+}
+
+// Callback function to get the ridgeback trajectory
+void MarkerPublisher::trajCallback(const geometry_msgs::PoseArray::ConstPtr& msg){
+  trajectories = *msg;
+
+  Eigen::Isometry3d pose = Eigen::Isometry3d::Identity();
+
+  for (int i = 0; i < trajectories.poses.size(); i++) {
+    pose = Eigen::Isometry3d::Identity();
+    // translation
+    pose.translation().x() = trajectories.poses[i].position.x + wall_pose[0];
+    pose.translation().y() = trajectories.poses[i].position.y + wall_pose[1];
+    // rotation (we have sent z-axis rotation angle in orientation.x)
+    pose = pose * Eigen::AngleAxisd(trajectories.poses[i].orientation.x * 2 * M_PI, Eigen::Vector3d::UnitZ());
+    this->visual_tools_->publishAxis(pose);
+  }
+  this->visual_tools_->trigger();
 }
 
 // Get the end-effector pose
@@ -126,15 +147,14 @@ void MarkerPublisher::publishLine(float id) {
 }
 
 int main( int argc, char** argv ) {
-  ros::init(argc, argv, "points_and_lines");
+  ros::init(argc, argv, "marker_publisher");
   ros::NodeHandle nh("~");
 
-  std::string wall_file_name;
-  std::vector<double> wall_pose;
-  nh.getParam("/wall_pose", wall_pose);
-  nh.getParam("/wall_file_name", wall_file_name);
-
   MarkerPublisher markerPublisher;
+
+  nh.getParam("/wall_pose", markerPublisher.wall_pose);
+  nh.getParam("/wall_file_name", markerPublisher.wall_file_name);
+
   ros::Rate loop_rate(10);
   float id = 0.0;
   bool init = false;
@@ -142,7 +162,7 @@ int main( int argc, char** argv ) {
   while (ros::ok()) {
     if (!init) {
       ros::Duration(5.0).sleep();
-      markerPublisher.initWall(wall_file_name, wall_pose);
+      markerPublisher.initWall();
       init = true;
     }
     markerPublisher.publishLine(id);
