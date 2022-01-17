@@ -4,6 +4,9 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf/tf.h>
 
+// Eigen
+#include <Eigen/Geometry>
+
 #include <stdio.h>
 #include <fstream>
 #include <iostream>
@@ -55,6 +58,8 @@ class DrawingInput {
     void setCanvasRange ();
     void splitByRange();
     void readDrawingFile ();
+    void readDemoFile ();
+    void saveDemoFile ();
     void removeLongLine ();
     int detectRange(geometry_msgs::Pose p);
     double getDist(geometry_msgs::Pose p1, geometry_msgs::Pose p2);
@@ -73,6 +78,6 @@ class DrawingInput {
     void setCanvasRangeArb(const std_msgs::Float64MultiArray &ri_ranges);
     void splitByRangeArb(const std_msgs::Float64MultiArray &ri_ranges);
     std::vector<std::vector<double>> matrixMult(const std::vector<std::vector<double>> &A, const std::vector<std::vector<double>> &B);
-    std::vector<std::vector<double>> matrixInv(const std::vector<std::vector<double>> &m);
+//    std::vector<std::vector<double>> matrixInv(const std::vector<std::vector<double>> &m);
     void relocateDrawingsArb(geometry_msgs::Pose &ridgeback_pose, int range_index);
 };

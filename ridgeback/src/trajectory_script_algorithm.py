@@ -34,7 +34,7 @@ class Iidgeback:
 
         return self.angle
 
-    def set_ridgeback(self, hypot= 0.8):
+    def set_ridgeback(self, hypot= 0.5):
         x1, y1 = self.cover_point[0]
         x2, y2 = self.cover_point[-1]
         direction = (y2-y1)/(x2-x1)

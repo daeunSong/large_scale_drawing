@@ -32,6 +32,11 @@ class Ridgeback:
         #config
         self.wall_file_name = rospy.get_param('/wall_file_name')
         self.wall_pose = rospy.get_param('/wall_pose')
+        #result
+        self.iiwa_range_list = []
+        self.path_x = []
+        self.path_y = []
+        self.path_angle = []
 
     def euler_from_quaternion(self, orientation_list):
 
@@ -189,14 +194,52 @@ class Ridgeback:
 
         return pose
 
+    def save_file(self):
+        import rospkg
+        rospack = rospkg.RosPack()
+        package_path = rospack.get_path('large_scale_drawing')
+
+        with open(package_path + '/data/demo/' + self.wall_file_name + '_traj.txt', 'w') as f:
+            f.write("iiwa_range_list: ")
+            for el in self.iiwa_range_list:
+                f.write("%f " %el)
+            f.write("\npath_x: ")
+            for el in self.path_x:
+                f.write("%f " %el)
+            f.write("\npath_y: ")
+            for el in self.path_y:
+                f.write("%f " %el)
+            f.write("\npath_angle: ")
+            for el in self.path_angle:
+                f.write("%f " %el)
+        f.close()
+
+    def read_file(self):
+        import rospkg
+        rospack = rospkg.RosPack()
+        package_path = rospack.get_path('large_scale_drawing')
+
+        try:
+            with open(package_path + '/data/demo/' + self.wall_file_name + '_traj.txt', 'r') as f:
+                for line in f:
+                    line = line.split()
+                    if line[0].split(':')[0] == 'iiwa_range_list':
+                        self.iiwa_range_list = list(map(float,line[1:]))
+                    elif line[0].split(':')[0] == 'path_x':
+                        self.path_x = list(map(float,line[1:]))
+                    elif line[0].split(':')[0] == 'path_y':
+                        self.path_y = list(map(float,line[1:]))
+                    elif line[0].split(':')[0] == 'path_angle':
+                        self.path_angle = list(map(float,line[1:]))
+            f.close()
+        except IOError:
+            print("No demo file exists. Run the algorithm\n")
+            self.iiwa_range_list, self.path_x, self.path_y, self.path_angle, = run_algorithm(self.wall_file_name)
+            self.save_file()
 
     def publish_trajectory(self):
-        
-        self.iiwa_range_list, self.path_x, self.path_y, self.path_angle, = run_algorithm(self.wall_file_name)
-        # self.path_angle = [-19.093492000485618, 12.952764513375516, -5.0169210365447965, 0.18131515269900042, 3.7499776558565516, -15.300845572449994, 18.520210336643274]
-        # self.path_x = [-0.9469888587522066, -1.1016441492919198, -0.9879351321080001, -1.12599599426178, -0.989287158995493, -1.0846428192865074, -0.951569336916289]
-        # self.path_y =  [1.4286884511065332, 0.5406818456628585, 0.4969599543453588, 0.004468367106766491, -0.46532219206899283, -0.48189017208199314, -1.3991113163367221]
-        # self.iiwa_range_list = [1.297, 0.892, 0.677, 0.159, -0.14450000000000002, -0.6615, -0.8785000000000001, -0.894]
+        # self.iiwa_range_list, self.path_x, self.path_y, self.path_angle, = run_algorithm(self.wall_file_name)
+        self.read_file()
 
         message= PoseArray()
         pose_list = []
