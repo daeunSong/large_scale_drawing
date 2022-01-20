@@ -1,7 +1,5 @@
 #include "drawing_input_range.h"
 
-#define PI 3.14159265
-
 DrawingInput::DrawingInput(const std::string &drawing_file_name,
                                   const char &color, const geometry_msgs::Pose &init_drawing_pose) {
   setFileName(drawing_file_name, color);
@@ -106,11 +104,12 @@ void DrawingInput::removeLongLine() {
   for (int i = 0; i < this->strokes.size(); i++) {  // strokes
     Stroke stroke;
     geometry_msgs::Pose p1 = this->strokes[i][0];
+    stroke.push_back(p1);
     for (int j = 1; j < this->strokes[i].size(); j++) { // points
       geometry_msgs::Pose p2 = this->strokes[i][j];
       double dist = this->getDist(p1, p2);
       if (dist > 0.03) { // 3cm
-        if (stroke.size() > 5)
+        if (stroke.size() > 3)
           new_strokes.push_back(stroke);
         Stroke().swap(stroke);
         stroke.push_back(p2);
@@ -182,7 +181,6 @@ void DrawingInput::splitByRange () {
 void DrawingInput::recenterDrawings() {
   for (int i = 0; i < this->strokes_by_range.size(); i++){ //range
     double diff = (this->ranges[i][0] + this->ranges[i][1])/2;
-    this->diffs.push_back(diff);
     for (int j = 0; j < this->strokes_by_range[i].size(); j++){ //strokes
        for (int k = 0; k < this->strokes_by_range[i][j].size(); k++) //pose
          this->strokes_by_range[i][j][k].position.y -= diff;
@@ -191,9 +189,9 @@ void DrawingInput::recenterDrawings() {
 }
 
 int DrawingInput::detectRange(geometry_msgs::Pose p) {
-  double x = p.position.y;
+  double y = p.position.y;
   for (int i = 0; i < this->ranges.size(); i++) {
-    if (ranges[i][0] < x && x <= ranges[i][1])
+    if (this->ranges[i][1] < y && y <= this->ranges[i][0])
       return i;
   }
   return -1;
@@ -388,48 +386,24 @@ void DrawingInput::readDemoFile(){
   txt.close();
 }
 
+// TODO: use Eigen
 std::tuple<double, point_t> DrawingInput::getXAndQuaternion(point_t &pt){
-  double x; point_t sn; 
+  double x; point_t sn;
 
   tie(x, sn) = getXAndSurfaceNormal(pt);
 
-  // std::cout<< "5) Got Surface Normal\n";
+  Eigen::Vector3d n (-sn[0], -sn[1], -sn[2]);
+  n.normalize();
 
-  point_t zaxis{0,0,1};
-
-  // calc cosine
-  double vSize = getVectorSize(sn);
-  if(vSize != 1){
-    for(int i = 0; i < 3; i++){
-      sn[i] = sn[i]/vSize;
-    }
-  }
-  double cosPsi = -1*sn[2];
-
-  // calc axis
-  point_t vecA = getCrossProduct(sn, zaxis);
-  vSize = getVectorSize(vecA);
-  if(vSize != 1){
-    for(int i = 0; i < vecA.size(); i++){
-      vecA[i] = vecA[i]/vSize;
-    }
-  }
-
-  // calc roation matrix
-  tf::Matrix3x3 rotMat = getRotationMatrix(vecA, cosPsi);
-  tf::Quaternion quat;
-  rotMat.getRotation(quat);
-
-  // std::cout<< "6) Got Rotation Matrix\n";
-
+  Eigen::Vector3d axis = Eigen::Vector3d::UnitZ().cross(n); // sin theta
+  double theta = std::asin(axis.norm()); // theta in radians
+  Eigen::Quaterniond q(Eigen::AngleAxisd(theta, axis));
 
   point_t orientation;
-  for(int i = 0; i < 4; i++){
-    orientation.push_back(quat[i]);
-  }
-
-  // std::cout<< "7) Got Orientation\n";
-  
+  orientation.push_back(q.x());
+  orientation.push_back(q.y());
+  orientation.push_back(q.z());
+  orientation.push_back(q.w());
 
   return {x, orientation};
 }
@@ -552,18 +526,6 @@ void DrawingInput::splitByRangeArb(const std_msgs::Float64MultiArray &ri_ranges)
   }
 
   this->strokes_by_range = strokes_by_range;
-
-  std::cout << "Center strokes\n";
-
-  // make center of splited drawing as y = 0 
-  for (int i = 0; i < this->strokes_by_range.size(); i++){ //range
-    double diff = (this->ranges[i][0] + this->ranges[i][1])/2;
-    this->diffs.push_back(diff);
-    for (int j = 0; j < this->strokes_by_range[i].size(); j++){ //strokes
-       for (int k = 0; k < this->strokes_by_range[i][j].size(); k++) //pose
-         this->strokes_by_range[i][j][k].position.y -= diff;
-    }
-  }
 }
 
 
@@ -590,130 +552,44 @@ std::vector<std::vector<double>> DrawingInput::matrixMult(const std::vector<std:
   return ans;
 }
 
-//std::vector<std::vector<double>> DrawingInput::matrixInv(const std::vector<std::vector<double>> &m){
-//  std::vector<std::vector<double>> inv;
-//  std::cout << "INV\n";
-//
-//  double A2323 = m[2][2] * m[3][3] - m[2][3] * m[3][2] ;
-//  double A1323 = m[2][1] * m[3][3] - m[2][3] * m[3][1] ;
-//  double A1223 = m[2][1] * m[3][2] - m[2][2] * m[3][1] ;
-//  double A0323 = m[2][0] * m[3][3] - m[2][3] * m[3][0] ;
-//  double A0223 = m[2][0] * m[3][2] - m[2][2] * m[3][0] ;
-//  double A0123 = m[2][0] * m[3][1] - m[2][1] * m[3][0] ;
-//  double A2313 = m[1][2] * m[3][3] - m[1][3] * m[3][2] ;
-//  double A1313 = m[1][1] * m[3][3] - m[1][3] * m[3][1] ;
-//  double A1213 = m[1][1] * m[3][2] - m[1][2] * m[3][1] ;
-//  double A2312 = m[1][2] * m[2][3] - m[1][3] * m[2][2] ;
-//  double A1312 = m[1][1] * m[2][3] - m[1][3] * m[2][1] ;
-//  double A1212 = m[1][1] * m[2][2] - m[1][2] * m[2][1] ;
-//  double A0313 = m[1][0] * m[3][3] - m[1][3] * m[3][0] ;
-//  double A0213 = m[1][0] * m[3][2] - m[1][2] * m[3][0] ;
-//  double A0312 = m[1][0] * m[2][3] - m[1][3] * m[2][0] ;
-//  double A0212 = m[1][0] * m[2][2] - m[1][2] * m[2][0] ;
-//  double A0113 = m[1][0] * m[3][1] - m[1][1] * m[3][0] ;
-//  double A0112 = m[1][0] * m[2][1] - m[1][1] * m[2][0] ;
-//
-//  std::cout << "DET\n";
-//
-//  double det = m[0][0] * ( m[1][1] * A2323 - m[1][2] * A1323 + m[1][3] * A1223 )
-//      - m[0][1] * ( m[1][0] * A2323 - m[1][2] * A0323 + m[1][3] * A0223 )
-//      + m[0][2] * ( m[1][0] * A1323 - m[1][1] * A0323 + m[1][3] * A0123 )
-//      - m[0][3] * ( m[1][0] * A1223 - m[1][1] * A0223 + m[1][2] * A0123 ) ;
-//  det = 1 / det;
-//
-//  std::vector<double> temp;
-//
-//  temp.push_back(det *   ( m[1][1] * A2323 - m[1][2] * A1323 + m[1][3] * A1223 ));
-//  temp.push_back(det * - ( m[0][1] * A2323 - m[0][2] * A1323 + m[0][3] * A1223 ));
-//  temp.push_back(det *   ( m[0][1] * A2313 - m[0][2] * A1313 + m[0][3] * A1213 ));
-//  temp.push_back(det * - ( m[0][1] * A2312 - m[0][2] * A1312 + m[0][3] * A1212 ));
-//  inv.push_back(temp);
-//  temp.clear();
-//
-//
-//  temp.push_back(det * - ( m[1][0] * A2323 - m[1][2] * A0323 + m[1][3] * A0223 ));
-//  temp.push_back(det *   ( m[0][0] * A2323 - m[0][2] * A0323 + m[0][3] * A0223 ));
-//  temp.push_back(det * - ( m[0][0] * A2313 - m[0][2] * A0313 + m[0][3] * A0213 ));
-//  temp.push_back(det *   ( m[0][0] * A2312 - m[0][2] * A0312 + m[0][3] * A0212 ));
-//  inv.push_back(temp);
-//  temp.clear();
-//
-//  temp.push_back(det *   ( m[1][0] * A1323 - m[1][1] * A0323 + m[1][3] * A0123 ));
-//  temp.push_back(det * - ( m[0][0] * A1323 - m[0][1] * A0323 + m[0][3] * A0123 ));
-//  temp.push_back(det *   ( m[0][0] * A1313 - m[0][1] * A0313 + m[0][3] * A0113 ));
-//  temp.push_back(det * - ( m[0][0] * A1312 - m[0][1] * A0312 + m[0][3] * A0112 ));
-//  inv.push_back(temp);
-//  temp.clear();
-//
-//  temp.push_back(det * - ( m[1][0] * A1223 - m[1][1] * A0223 + m[1][2] * A0123 ));
-//  temp.push_back(det *   ( m[0][0] * A1223 - m[0][1] * A0223 + m[0][2] * A0123 ));
-//  temp.push_back(det * - ( m[0][0] * A1213 - m[0][1] * A0213 + m[0][2] * A0113 ));
-//  temp.push_back(det *   ( m[0][0] * A1212 - m[0][1] * A0212 + m[0][2] * A0112 ));
-//  inv.push_back(temp);
-//  temp.clear();
-//
-//  std::cout << "INV return\n";
-//
-//  return inv;
-//}
 
+//TODO: clean the code
 void DrawingInput::relocateDrawingsArb(geometry_msgs::Pose &ridegeback_pose, int range_index){
   // use ridgeback's position and orientation to change world coordinate system to local coordinate system
   ROS_INFO("Calculate Transformation Matrix");
 
-  Eigen::Isometry3f mat = Eigen::Isometry3f::Identity();
-  // translation
-  mat.translation().x() = ridegeback_pose.position.x;
-  mat.translation().y() = ridegeback_pose.position.y;
-  // rotation (we have sent z-axis rotation angle in orientation.x, euler given radian needed)
-  mat = mat * Eigen::AngleAxisf(ridegeback_pose.orientation.x * PI / 180.0, Eigen::Vector3f::UnitZ());
-  mat = mat.inverse();
+  Eigen::Affine3d t(Eigen::Translation3d(Eigen::Vector3d(ridegeback_pose.position.x,ridegeback_pose.position.y,0)));
+  Eigen::Affine3d r(Eigen::Affine3d(Eigen::AngleAxisd(ridegeback_pose.orientation.x, Eigen::Vector3d::UnitZ())));
+  Eigen::Matrix4d mat = (t * r).matrix();
+//  std::cout << mat << std::endl;
+  mat = mat.inverse().eval();
+//  std::cout << mat << std::endl;
+
+  Eigen::Quaterniond rotq = Eigen::Quaterniond(Eigen::AngleAxisd(ridegeback_pose.orientation.x * (-1), Eigen::Vector3d::UnitZ()));
 
   ROS_INFO("Tranforming strokes...");
   for(int j = 0; j < this->strokes_by_range[range_index].size(); j++){
     for (int k = 0; k < this->strokes_by_range[range_index][j].size(); k++){ //pose
       // drawing pose in Eigen format
-      Eigen::Vector3f stroke_point (this->strokes_by_range[range_index][j][k].position.x,
+      Eigen::Vector4d stroke_point (this->strokes_by_range[range_index][j][k].position.x,
                                     this->strokes_by_range[range_index][j][k].position.y,
-                                    this->strokes_by_range[range_index][j][k].position.z);
-      // trnasform the point in {Ridgeback}
+                                    this->strokes_by_range[range_index][j][k].position.z, 1);
+      // transform the position in {Ridgeback}
       stroke_point = mat * stroke_point;
-      this->strokes_by_range[range_index][j][k].position.x = stroke_point[0];
-      this->strokes_by_range[range_index][j][k].position.x = stroke_point[1];
-      this->strokes_by_range[range_index][j][k].position.x = stroke_point[2];
 
-//      double sum = 0; // x
-//      sum += trans[0][0]*this->strokes_by_range[range_index][j][k].position.x;
-//      sum += trans[0][1]*this->strokes_by_range[range_index][j][k].position.y;
-//      sum += trans[0][2]*this->strokes_by_range[range_index][j][k].position.z;
-//      sum += trans[0][3];
-//      this->strokes_by_range[range_index][j][k].position.x = sum;
-//
-//      sum = 0; // y
-//      sum += trans[1][0]*this->strokes_by_range[range_index][j][k].position.x;
-//      sum += trans[1][1]*this->strokes_by_range[range_index][j][k].position.y;
-//      sum += trans[1][2]*this->strokes_by_range[range_index][j][k].position.z;
-//      sum += trans[1][3];
-//      this->strokes_by_range[range_index][j][k].position.y = sum;
-//
-//      sum = 0; // z
-//      sum += trans[2][0]*this->strokes_by_range[range_index][j][k].position.x;
-//      sum += trans[2][1]*this->strokes_by_range[range_index][j][k].position.y;
-//      sum += trans[2][2]*this->strokes_by_range[range_index][j][k].position.z;
-//      sum += trans[2][3];
-//      this->strokes_by_range[range_index][j][k].position.z = sum;
-//
-//      sum = 0; // h
-//      sum += trans[3][0]*this->strokes_by_range[range_index][j][k].position.x;
-//      sum += trans[3][1]*this->strokes_by_range[range_index][j][k].position.y;
-//      sum += trans[3][2]*this->strokes_by_range[range_index][j][k].position.z;
-//      sum += trans[3][3];
-//
-//      if(sum != 1){
-//        this->strokes_by_range[range_index][j][k].position.x /= sum;
-//        this->strokes_by_range[range_index][j][k].position.y /= sum;
-//        this->strokes_by_range[range_index][j][k].position.z /= sum;
-//      }
+      this->strokes_by_range[range_index][j][k].position.x = stroke_point[0];
+      this->strokes_by_range[range_index][j][k].position.y = stroke_point[1];
+      this->strokes_by_range[range_index][j][k].position.z = stroke_point[2];
+      // transform the orientation
+      Eigen::Quaterniond q = Eigen::Quaterniond(this->strokes_by_range[range_index][j][k].orientation.w,
+                                                this->strokes_by_range[range_index][j][k].orientation.x,
+                                                this->strokes_by_range[range_index][j][k].orientation.y,
+                                                this->strokes_by_range[range_index][j][k].orientation.z);
+      q = rotq * q * rotq.conjugate();
+      this->strokes_by_range[range_index][j][k].orientation.x = q.x();//0.000601511;//q.x();
+      this->strokes_by_range[range_index][j][k].orientation.y = q.y();//0.712264;//q.y();
+      this->strokes_by_range[range_index][j][k].orientation.z = q.z();//6.82828e-05;//q.z();
+      this->strokes_by_range[range_index][j][k].orientation.w = q.w();//0.701911;//q.w();
     }  
   }
 }

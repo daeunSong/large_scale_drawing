@@ -17,6 +17,8 @@
 #include "KDTree.hpp"
 
 
+#define D2R M_PI/180
+#define R2D 180/M_PI
 #define Stroke std::vector<geometry_msgs::Pose>
 
 class DrawingInput {
@@ -42,7 +44,6 @@ class DrawingInput {
     // regarding range splitting
     double max_range = 0.45;  // max range width
     std::vector<std::array<double, 2>> ranges;
-    std::vector<double> diffs;
 
     // regarding wall file and arbitrary drawing
     std::string wall_file_name;
