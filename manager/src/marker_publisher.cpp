@@ -1,12 +1,16 @@
 #include "marker_publisher.h"
 
-MarkerPublisher::MarkerPublisher() : nh("") {
+MarkerPublisher::MarkerPublisher(ros::NodeHandle* nh):nh_(*nh) {
   // init visual tools
-  this->visual_tools_.reset(new rvt::RvizVisualTools("/odom", "/axes_marker"));
-  this->visual_tools_->loadMarkerPub();
+  visual_tools_.reset(new rvt::RvizVisualTools("/odom", "/axes_marker"));
+  visual_tools_->loadMarkerPub();
   // Clear messages
-  this->visual_tools_->deleteAllMarkers();
-  this->visual_tools_->enableBatchPublishing();
+  visual_tools_->deleteAllMarkers();
+  visual_tools_->enableBatchPublishing();
+
+  // init papram
+  nh_.getParam("/wall_pose", wall_pose);
+  nh_.getParam("/wall_file_name", wall_file_name);
 
   initSubscriber();
   initPublisher();
@@ -15,15 +19,15 @@ MarkerPublisher::MarkerPublisher() : nh("") {
 
 // Init subscriber
 void MarkerPublisher::initSubscriber() {
-  drawing_sub = nh.subscribe("/ready_to_draw", 10, &MarkerPublisher::drawCallback, this);
-  color_sub = nh.subscribe("/drawing_color", 10, &MarkerPublisher::colorCallback, this);
-  traj_sub = nh.subscribe("/iiwa_ridgeback_communicaiton/trajectory", 100, &MarkerPublisher::trajCallback, this);
-//  coord_sub = nh.subscribe("/coord", 10, &MarkerPublisher::coordCallback, this); //
+  drawing_sub = nh_.subscribe("/ready_to_draw", 10, &MarkerPublisher::drawCallback, this);
+  color_sub = nh_.subscribe("/drawing_color", 10, &MarkerPublisher::colorCallback, this);
+  traj_sub = nh_.subscribe("/iiwa_ridgeback_communicaiton/trajectory", 100, &MarkerPublisher::trajCallback, this);
+//  coord_sub = nh_.subscribe("/coord", 10, &MarkerPublisher::coordCallback, this); //
 }
 
 // Init publisher
 void MarkerPublisher::initPublisher() {
-  marker_pub = nh.advertise<visualization_msgs::Marker>("/drawing_marker", 100);
+  marker_pub = nh_.advertise<visualization_msgs::Marker>("/drawing_marker", 100);
 }
 
 // Init marker
@@ -170,10 +174,7 @@ int main( int argc, char** argv ) {
   ros::init(argc, argv, "marker_publisher");
   ros::NodeHandle nh("~");
 
-  MarkerPublisher markerPublisher;
-
-  nh.getParam("/wall_pose", markerPublisher.wall_pose);
-  nh.getParam("/wall_file_name", markerPublisher.wall_file_name);
+  MarkerPublisher markerPublisher(&nh);
 
   ros::Rate loop_rate(10);
   float id = 0.0;

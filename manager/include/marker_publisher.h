@@ -10,12 +10,13 @@
 #include <Eigen/Geometry>
 
 namespace rvt = rviz_visual_tools;
+
 #define D2R M_PI/180
 #define Stroke std::vector<geometry_msgs::Pose>
 
 class MarkerPublisher {
   public:
-    MarkerPublisher();
+    MarkerPublisher(ros::NodeHandle* nh);
 
     bool ready_to_draw = false;
     visualization_msgs::Marker line_strip;
@@ -33,7 +34,7 @@ class MarkerPublisher {
     void publishAxes();
 
   private:
-    ros::NodeHandle nh;
+    ros::NodeHandle nh_;
     rvt::RvizVisualToolsPtr visual_tools_;
 
     geometry_msgs::Point line_color;
