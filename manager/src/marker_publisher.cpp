@@ -18,6 +18,7 @@ void MarkerPublisher::initSubscriber() {
   drawing_sub = nh.subscribe("/ready_to_draw", 10, &MarkerPublisher::drawCallback, this);
   color_sub = nh.subscribe("/drawing_color", 10, &MarkerPublisher::colorCallback, this);
   traj_sub = nh.subscribe("/iiwa_ridgeback_communicaiton/trajectory", 100, &MarkerPublisher::trajCallback, this);
+//  coord_sub = nh.subscribe("/coord", 10, &MarkerPublisher::coordCallback, this); //
 }
 
 // Init publisher
@@ -48,8 +49,8 @@ void MarkerPublisher::initWall() {
   wall_marker.action = visualization_msgs::Marker::ADD;
 
   geometry_msgs::Pose marker_pose;
-  marker_pose.position.x = wall_pose[0];
-  marker_pose.position.y = wall_pose[1];
+  marker_pose.position.x = wall_pose[0] + 0.015;
+  marker_pose.position.y = wall_pose[1] + 0.015;
   marker_pose.position.z = wall_pose[2];
   marker_pose.orientation.x = wall_pose[3];
   marker_pose.orientation.y = wall_pose[4];
@@ -94,10 +95,29 @@ void MarkerPublisher::trajCallback(const geometry_msgs::PoseArray::ConstPtr& msg
     pose.translation().x() = trajectories.poses[i].position.x + wall_pose[0];
     pose.translation().y() = trajectories.poses[i].position.y + wall_pose[1];
     // rotation (we have sent z-axis rotation angle in orientation.x, euler given radian needed)
-    pose = pose * Eigen::AngleAxisd(trajectories.poses[i].orientation.x * M_PI / 180, Eigen::Vector3d::UnitZ());
+    pose = pose * Eigen::AngleAxisd(trajectories.poses[i].orientation.x * D2R, Eigen::Vector3d::UnitZ());
     this->visual_tools_->publishAxis(pose);
   }
   this->visual_tools_->trigger();
+}
+
+// publish axis
+void MarkerPublisher::coordCallback(const geometry_msgs::Pose::ConstPtr& msg){
+  geometry_msgs::Pose marker_pose = *msg;
+  Eigen::Isometry3d pose = Eigen::Isometry3d::Identity();
+
+  // rotation
+  Eigen::Quaterniond q(marker_pose.orientation.x, marker_pose.orientation.y, marker_pose.orientation.z, marker_pose.orientation.w);
+  Eigen::Matrix3d R = q.toRotationMatrix();
+  pose = R * pose;
+  // translation
+  pose.translation().x() = marker_pose.position.x;
+  pose.translation().y() = marker_pose.position.y;
+  pose.translation().z() = marker_pose.position.z;
+
+  this->visual_tools_->publishAxis(pose);
+  this->visual_tools_->trigger();
+  std::cout << "AXIS PUBLISHED" << std::endl;
 }
 
 // Get the end-effector pose
@@ -161,9 +181,10 @@ int main( int argc, char** argv ) {
 
   while (ros::ok()) {
     if (!init) {
-      ros::Duration(5.0).sleep();
+      ros::Duration(10.0).sleep();
       markerPublisher.initWall();
       init = true;
+      ros::Duration(1.0).sleep();
     }
     markerPublisher.publishLine(id);
 

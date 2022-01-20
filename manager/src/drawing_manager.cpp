@@ -35,7 +35,28 @@ int main(int argc, char **argv){
 
   //*********** MSG publisher
   ros::Publisher ir_pub = nh.advertise<std_msgs::String>("/iiwa_ridgeback_communicaiton/iiwa/state", 1);
+  ros::Publisher marker_pub = nh.advertise<visualization_msgs::Marker>("/target_drawing", 100);
+  ros::Publisher marker_pub2 = nh.advertise<visualization_msgs::Marker>("/target_drawing2", 100);
   std_msgs::String iiwa_state;
+  visualization_msgs::Marker line_strip;
+  visualization_msgs::Marker line_strip2;
+
+  //*********** target drawing visualization
+  line_strip.header.frame_id = "/odom";
+  line_strip.header.stamp = ros::Time::now();
+  line_strip.ns = "target";
+  line_strip.action = visualization_msgs::Marker::ADD;
+  line_strip.type = visualization_msgs::Marker::LINE_STRIP;
+  line_strip2.header.frame_id = "/base_link";
+  line_strip2.header.stamp = ros::Time::now();
+  line_strip2.ns = "target_moved";
+  line_strip2.action = visualization_msgs::Marker::ADD;
+  line_strip2.type = visualization_msgs::Marker::LINE_STRIP;
+
+  line_strip.pose.orientation.w = 1.0;
+  line_strip.scale.x = 0.001;
+  line_strip2.pose.orientation.w = 1.0;
+  line_strip2.scale.x = 0.001;
 
   //*********** Init IIWA
   std::string move_group_name, ee_link, planner_id, reference_frame;
@@ -53,6 +74,11 @@ int main(int argc, char **argv){
   init_drawing_pose.position.x += 0.03;   // 3cm depper
   init_drawing_pose.position.z += 0.05;  // move up
 
+  std::cout << "INIT DRAWING POSE ORI: " << init_drawing_pose.orientation.x << " "
+                                         << init_drawing_pose.orientation.y << " "
+                                         << init_drawing_pose.orientation.z << " "
+                                         << init_drawing_pose.orientation.w << std::endl;
+
   //*********** Init Ridgeback (get drawing split ranges)
   bool init = true;
   boost::shared_ptr<std_msgs::Float64MultiArray const> drawing_ranges;
@@ -65,10 +91,33 @@ int main(int argc, char **argv){
   nh.getParam("/wall_pose", wall_pose);
   nh.getParam("/drawing_file_name", drawing_file_name);
   // init drawing (Read drawing file and project it on to surface)
-  DrawingInput drawing_c(wall_file_name, drawing_file_name, 'c', init_drawing_pose, wall_pose);
-  DrawingInput drawing_m(wall_file_name, drawing_file_name, 'm', init_drawing_pose, wall_pose);
-  DrawingInput drawing_y(wall_file_name, drawing_file_name, 'y', init_drawing_pose, wall_pose);
+//  DrawingInput drawing_c(wall_file_name, drawing_file_name, 'c', init_drawing_pose, wall_pose);
+//  DrawingInput drawing_m(wall_file_name, drawing_file_name, 'm', init_drawing_pose, wall_pose);
+//  DrawingInput drawing_y(wall_file_name, drawing_file_name, 'y', init_drawing_pose, wall_pose);
   DrawingInput drawing_k(wall_file_name, drawing_file_name, 'k', init_drawing_pose, wall_pose);
+
+  // visualization
+  line_strip.header.stamp = ros::Time::now();
+  line_strip.color.a = 0.2;
+  line_strip.color.r = 0.0;
+  line_strip.color.g = 0.0;
+  line_strip.color.b = 0.0;
+  line_strip2.header.stamp = ros::Time::now();
+  line_strip2.color.a = 0.3;
+  line_strip2.color.r = 1.0;
+  line_strip2.color.g = 0.0;
+  line_strip2.color.b = 0.0;
+
+  int id = 0;
+  for (int i = 0; i < drawing_k.strokes.size(); i++) {
+    for (int j = 0; j < drawing_k.strokes[i].size(); j++) {
+      line_strip.id = id; id++;
+      line_strip.points.push_back(drawing_k.strokes[i][j].position);
+    }
+    marker_pub.publish(line_strip);
+    line_strip.points.erase(line_strip.points.begin());
+  }
+  ros::Duration(1.0).sleep();
 
   //*********** Wait for ridgeback
   ROS_INFO("Waiting for drawing ranges ...");
@@ -87,7 +136,7 @@ int main(int argc, char **argv){
   init = true;
 
   while(ros::ok() && init){
-    for(int i = range_num-1; i >= 0; i--){
+    for(int i = 0; i <= range_num ; i++){
       // get ridgeback's position and orientation
       ROS_INFO("Waiting for ridgeback's position and orientation ...");
       boost::shared_ptr<geometry_msgs::Pose const> ridegeback_pose_;
@@ -98,9 +147,21 @@ int main(int argc, char **argv){
       ROS_INFO("Relocate drawing coordinate according to ridgeback's pose");
       drawing_k.relocateDrawingsArb(ridegeback_pose, i);
 
+      // visualize
+      id = 0;
+      for (int k = 0; k < drawing_k.strokes_by_range[i].size(); k++) {
+        for (int j = 0; j < drawing_k.strokes_by_range[i][k].size(); j++) {
+          line_strip2.id = id; id++;
+          line_strip2.points.push_back(drawing_k.strokes_by_range[i][k][j].position);
+        }
+        marker_pub.publish(line_strip2);
+        line_strip2.points.erase(line_strip2.points.begin());
+      }
+      ros::Duration(1.0).sleep();
+
       // iiwa draw (color: c, m, y, k)
       ROS_INFO("IIWA Drawing Start");
-      iiwa.drawStrokes(nh, drawing_k, 'm', i);
+      iiwa.drawStrokes(nh, drawing_k, drawing_k.color, i);
 
       // finished iiwa drawing make ridgeback move
       std::cout << "\n\n\n\n IIWA DONE \n\n";

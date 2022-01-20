@@ -52,11 +52,11 @@ catkin_package()
 #add_dependencies(drawing_moveit iiwa_msgs_generate_messages_cpp)
 #target_link_libraries(drawing_moveit drawingInput KDTree ${catkin_LIBRARIES}) #
 
-add_executable(drawing_manager drawing_manager.cpp)
+add_executable(drawing_manager manager/src/drawing_manager.cpp)
 add_dependencies(drawing_manager iiwa_msgs_generate_messages_cpp)
 target_link_libraries(drawing_manager drawingInput drawingMoveit KDTree ${catkin_LIBRARIES}) #
 
-add_executable(marker_publisher iiwa/src/marker_publisher.cpp)
+add_executable(marker_publisher manager/src/marker_publisher.cpp)
 add_dependencies(marker_publisher iiwa_msgs_generate_messages_cpp)
 target_link_libraries(marker_publisher ${catkin_LIBRARIES})
 

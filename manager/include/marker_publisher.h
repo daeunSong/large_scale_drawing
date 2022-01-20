@@ -10,6 +10,8 @@
 #include <Eigen/Geometry>
 
 namespace rvt = rviz_visual_tools;
+#define D2R M_PI/180
+#define Stroke std::vector<geometry_msgs::Pose>
 
 class MarkerPublisher {
   public:
@@ -46,8 +48,10 @@ class MarkerPublisher {
     ros::Subscriber drawing_sub;
     ros::Subscriber color_sub;
     ros::Subscriber traj_sub;
+    ros::Subscriber coord_sub; //
 
     void drawCallback(const std_msgs::Bool::ConstPtr& msg);
     void colorCallback(const geometry_msgs::Point::ConstPtr& msg);
     void trajCallback(const geometry_msgs::PoseArray::ConstPtr& msg);
+    void coordCallback(const geometry_msgs::Pose::ConstPtr& msg); //
 };
