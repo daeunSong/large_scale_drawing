@@ -20,6 +20,10 @@ class DrawingManager {
   public:
     DrawingManager(ros::NodeHandle* nh);
 
+    std::vector<DrawingInput> drawings;
+    std_msgs::Float64MultiArray ranges;
+    int range_num;
+
     std_msgs::String iiwa_state;
     std::string ridgeback_state;
 
@@ -41,8 +45,10 @@ class DrawingManager {
     // problem
     std::string wall_file_name, drawing_file_name;
     std::vector<double> wall_pose;
+    std::vector<std::string> colors;
 
     void visualizeStrokes(std::vector<Stroke> &strokes);
+    void publishState(std::string state);
 
   private:
     ros::NodeHandle nh_;

@@ -107,8 +107,8 @@ void DrawingMoveit::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strok
   int j = 0;
   double fraction = 0.0;
   this->drawing_color_pub.publish(this->color);
-  for (auto strokes : drawing_coor.strokes_by_range[range_num]) {
-    command_cartesian_position.pose = strokes[0];
+  for (auto stroke : drawing_strokes.strokes_by_range[range_num]) {
+    command_cartesian_position.pose = stroke[0];
     command_cartesian_position.pose.position.x -= this->backward;
 
     // move to ready position
@@ -120,7 +120,7 @@ void DrawingMoveit::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strok
     linear_path.clear();
 
     // move forward
-    command_cartesian_position.pose = strokes[0];
+    command_cartesian_position.pose = stroke[0];
     linear_path.push_back(command_cartesian_position.pose);
     fraction = this->move_group->computeCartesianPath(linear_path, this->eef_step, this->jump_threshold, trajectory);
     my_plan.trajectory_ = trajectory;
@@ -130,7 +130,7 @@ void DrawingMoveit::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strok
 
     // draw
     std::cout << "Drawing " << drawing_strokes.color << " " << range_num << "th range, " << j << "th stroke ... " << std::endl;
-    fraction = this->move_group->computeCartesianPath(strokes, this->eef_step, this->jump_threshold, trajectory);
+    fraction = this->move_group->computeCartesianPath(stroke, this->eef_step, this->jump_threshold, trajectory);
     my_plan.trajectory_ = trajectory;
     ros::Duration(0.1).sleep();
     ready.data = true;
@@ -142,7 +142,7 @@ void DrawingMoveit::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strok
     this->drawing_line_pub.publish(ready);
 
     // move backward
-    command_cartesian_position.pose = strokes.back();
+    command_cartesian_position.pose = stroke.back();
     command_cartesian_position.pose.position.x -= this->backward;
     linear_path.push_back(command_cartesian_position.pose);
     fraction = this->move_group->computeCartesianPath(linear_path, this->eef_step, this->jump_threshold, trajectory); // loosen the eef_step as moving backward does not need precision
