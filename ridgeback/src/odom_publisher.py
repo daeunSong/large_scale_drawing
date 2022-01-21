@@ -23,8 +23,13 @@ class OdomPublisher(object):
                 (trans, rot) = self.listener.lookupTransform('/odom', '/base_link', rospy.Time(0))
             except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
                 continue
-        # odom_msgs.pose.pose.position.x = trans[0]
+        odom_msgs.pose.pose.position.x = trans[0]
         odom_msgs.pose.pose.position.y = trans[1]
+        odom_msgs.pose.pose.position.z = trans[2]
+        odom_msgs.pose.pose.orientation.x = rot[0]
+        odom_msgs.pose.pose.orientation.y = rot[1]
+        odom_msgs.pose.pose.orientation.z = rot[2]
+        odom_msgs.pose.pose.orientation.w = rot[3]
 
         self.odom_pub.publish(odom_msgs)
 
