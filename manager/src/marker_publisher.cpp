@@ -171,7 +171,7 @@ void MarkerPublisher::publishLine(float id) {
 }
 
 int main( int argc, char** argv ) {
-  ros::init(argc, argv, "marker_publisher");
+  ros::init(argc, argv, "markerPublisher");
   ros::NodeHandle nh("~");
 
   MarkerPublisher markerPublisher(&nh);

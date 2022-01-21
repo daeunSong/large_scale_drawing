@@ -396,7 +396,7 @@ std::tuple<double, point_t> DrawingInput::getXAndQuaternion(point_t &pt){
   n.normalize();
 
   Eigen::Vector3d axis = Eigen::Vector3d::UnitZ().cross(n); // sin theta
-  double theta = std::asin(axis.norm()); // theta in radians
+  double theta = std::asin(std::min(std::max(axis.norm(),-1.0),1.0)); // theta in radians
   Eigen::Quaterniond q(Eigen::AngleAxisd(theta, axis));
 
   point_t orientation;
@@ -561,9 +561,7 @@ void DrawingInput::relocateDrawingsArb(geometry_msgs::Pose &ridegeback_pose, int
   Eigen::Affine3d t(Eigen::Translation3d(Eigen::Vector3d(ridegeback_pose.position.x,ridegeback_pose.position.y,0)));
   Eigen::Affine3d r(Eigen::Affine3d(Eigen::AngleAxisd(ridegeback_pose.orientation.x, Eigen::Vector3d::UnitZ())));
   Eigen::Matrix4d mat = (t * r).matrix();
-//  std::cout << mat << std::endl;
   mat = mat.inverse().eval();
-//  std::cout << mat << std::endl;
 
   Eigen::Quaterniond rotq = Eigen::Quaterniond(Eigen::AngleAxisd(ridegeback_pose.orientation.x * (-1), Eigen::Vector3d::UnitZ()));
 
@@ -576,11 +574,11 @@ void DrawingInput::relocateDrawingsArb(geometry_msgs::Pose &ridegeback_pose, int
                                     this->strokes_by_range[range_index][j][k].position.z, 1);
       // transform the position in {Ridgeback}
       stroke_point = mat * stroke_point;
-
       this->strokes_by_range[range_index][j][k].position.x = stroke_point[0];
       this->strokes_by_range[range_index][j][k].position.y = stroke_point[1];
       this->strokes_by_range[range_index][j][k].position.z = stroke_point[2];
-      // transform the orientation
+
+      // transform the orientation in {Ridgeback}
       Eigen::Quaterniond q = Eigen::Quaterniond(this->strokes_by_range[range_index][j][k].orientation.w,
                                                 this->strokes_by_range[range_index][j][k].orientation.x,
                                                 this->strokes_by_range[range_index][j][k].orientation.y,
@@ -590,6 +588,6 @@ void DrawingInput::relocateDrawingsArb(geometry_msgs::Pose &ridegeback_pose, int
       this->strokes_by_range[range_index][j][k].orientation.y = q.y();//0.712264;//q.y();
       this->strokes_by_range[range_index][j][k].orientation.z = q.z();//6.82828e-05;//q.z();
       this->strokes_by_range[range_index][j][k].orientation.w = q.w();//0.701911;//q.w();
-    }  
+    }
   }
 }

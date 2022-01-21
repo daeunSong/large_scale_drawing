@@ -42,21 +42,21 @@ class DrawingManager {
     std::string wall_file_name, drawing_file_name;
     std::vector<double> wall_pose;
 
+    void visualizeStrokes(std::vector<Stroke> &strokes);
+
+  private:
+    ros::NodeHandle nh_;
+    ros::Subscriber ir_sub_;
+
     void initSubscriber();
     void initPublisher();
     void initMarker();
     void initMoveGroup();
 
-    void visualizeStrokes(std::vector<Stroke> &strokes);
-
-  private:
-    ros::NodeHandle nh_;
-    ros::Subscriber ir_sub;
-
     // MoveGroup
     const std::string PLANNING_GROUP = "manipulator";
     const std::string EE_LINK = "iiwa_link_ee";
-    const std::string PLANNER_ID = "RRTConnectkConfigDefault";
+    const std::string PLANNER_ID = "geometric::RRTConnect";
     const std::string REFERENCE_FRAME = "base_link";
 
     void stateCallback(const std_msgs::String::ConstPtr& msg);

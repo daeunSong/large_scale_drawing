@@ -14,12 +14,12 @@ DrawingManager::DrawingManager(ros::NodeHandle* nh):nh_(*nh) {
 
 // Init subscriber
 void DrawingManager::initSubscriber() {
-  ir_sub = nh_.subscribe("/iiwa_ridgeback_communicaiton/ridgeback/state", 10, &DrawingManager::stateCallback, this);
+  ir_sub_ = nh_.subscribe("/iiwa_ridgeback_communicaiton/ridgeback/state", 10, &DrawingManager::stateCallback, this);
 }
 
 // Init publisher
 void DrawingManager::initPublisher() {
-  ir_pub = nh_.advertise<std_msgs::String>("/iiwa_ridgeback_communicaiton/iiwa/state", 1);
+  ir_pub = nh_.advertise<std_msgs::String>("/iiwa_ridgeback_communicaiton/iiwa/state", 10);
   marker_pub = nh_.advertise<visualization_msgs::Marker>("/target_drawing", 100);
 }
 
@@ -82,7 +82,7 @@ void DrawingManager::visualizeStrokes(std::vector<Stroke> &strokes){
 
 int main(int argc, char **argv){
   //*********** Initialize ROS
-  ros::init(argc, argv, "CommandRobotMoveit");
+  ros::init(argc, argv, "drawingManager");
   ros::NodeHandle nh("~");
 
   DrawingManager dm(&nh);
@@ -159,7 +159,7 @@ int main(int argc, char **argv){
 
       // iiwa draw (color: c, m, y, k)
       ROS_INFO("IIWA Drawing Start");
-      iiwa.drawStrokes(nh, drawing_k, drawing_k.color, i);
+      iiwa.drawStrokes(nh, drawing_k, 'c', i);
 
       // finished iiwa drawing make ridgeback move
       std::cout << "\n\n\n\n IIWA DONE \n\n";
