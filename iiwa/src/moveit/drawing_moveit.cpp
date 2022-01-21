@@ -1,19 +1,5 @@
 #include "drawing_moveit.h"
 
-#define BACKWARD 0.06
-
-using moveit::planning_interface::MoveItErrorCode;
-
-// Create MoveGroup
-static const std::string PLANNING_GROUP = "manipulator";
-static const std::string EE_LINK = "iiwa_link_ee";
-/* RRTConnectkConfigDefault, RRTkConfigDefault, RRTstartkConfigDefault, TRRTkConfigDefault, ESTkConfigDefault
-   SBLkConfigDefault, LBKPIECEkConfigDefault, BKPIECEkConfigDefault, PRMkConfigDefault, PRMstarkConfigDefault */
-static const std::string PLANNER_ID = "RRTConnectkConfigDefault";
-static const std::string REFERENCE_FRAME = "base_link";
-
-bool sim;
-
 DrawingMoveit::DrawingMoveit(ros::NodeHandle &nh, std::string planning_group, std::string planner_id, std::string ee_link_, std::string reference_frame){
   // to draw lines in rviz
   this->drawing_line_pub = nh.advertise<std_msgs::Bool>("/ready_to_draw", 1);
@@ -99,14 +85,14 @@ geometry_msgs::PoseStamped DrawingMoveit::getCurrentPose(){
   return this->move_group->getCurrentPose(this->ee_link);
 }
 
-void DrawingMoveit::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_coor, char color_, int range_num){
-  if(color_ == 'c'){
+void DrawingMoveit::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strokes, int range_num){
+  if(drawing_strokes.color == 'c'){
     this->color.x = 0.0; this->color.y = 1.0; this->color.z = 1.0;   // cyan (0, 255, 255)
-  }else if(color_ == 'm'){
+  }else if(drawing_strokes.color == 'm'){
     this->color.x = 1.0; this->color.y = 0.0; this->color.z = 1.0;   // magenta (255, 0, 255)
-  }else if(color_ == 'y'){
+  }else if(drawing_strokes.color == 'y'){
     this->color.x = 1.0; this->color.y = 1.0; this->color.z = 0.0;   // yellow (255, 255, 0)
-  }else if(color_ == 'k'){
+  }else if(drawing_strokes.color == 'k'){
     this->color.x = 0.0; this->color.y = 0.0; this->color.z = 0.0;   // black (0, 0, 0)
   }
 
@@ -143,7 +129,7 @@ void DrawingMoveit::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_coor,
     linear_path.clear();
 
     // draw
-    std::cout << "Drawing "<<color_<<" " << range_num << "th range, " << j << "th stroke ... " << std::endl;
+    std::cout << "Drawing " << drawing_strokes.color << " " << range_num << "th range, " << j << "th stroke ... " << std::endl;
     fraction = this->move_group->computeCartesianPath(strokes, this->eef_step, this->jump_threshold, trajectory);
     my_plan.trajectory_ = trajectory;
     ros::Duration(0.1).sleep();

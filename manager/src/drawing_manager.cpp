@@ -159,7 +159,7 @@ int main(int argc, char **argv){
 
       // iiwa draw (color: c, m, y, k)
       ROS_INFO("IIWA Drawing Start");
-      iiwa.drawStrokes(nh, drawing_k, 'c', i);
+      iiwa.drawStrokes(nh, drawing_k, i);
 
       // finished iiwa drawing make ridgeback move
       std::cout << "\n\n\n\n IIWA DONE \n\n";

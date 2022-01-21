@@ -17,6 +17,7 @@
 #include <string>
 #include <vector>
 
+using moveit::planning_interface::MoveItErrorCode;
 
 class DrawingMoveit{
   public:
