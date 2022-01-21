@@ -23,7 +23,7 @@ class Ridgeback:
         self.publisher_cmd_vel = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
         self.subscriber_odom = rospy.Subscriber("/odometry/filtered", Odometry, self.callback_odom)
         self.subscriber_iiwa = rospy.Subscriber("/iiwa_ridgeback_communicaiton/iiwa/state", String, self.callback_iiwa)
-        self.state = 0
+        self.ridgeback_state = 0
         self.linear_speed = 0.05
         self.kp = 0.01 # angular speed
         self.reached = False
@@ -60,6 +60,7 @@ class Ridgeback:
         self.iiwa_state = msg.data
         # print('iiwa state is:',self.iiwa_state)
 
+    # TODO: use pure quaternion
     def callback_odom(self, msg):
         # get position
         pose_position = msg.pose.pose.position
@@ -70,7 +71,6 @@ class Ridgeback:
         self.orientation_q = msg.pose.pose.orientation
         orientation_list = [self.orientation_q.x, self.orientation_q.y, self.orientation_q.z, self.orientation_q.w]
 
-        # TODO: angle..
         (roll, pitch, self.yaw) = self.euler_from_quaternion(orientation_list)
         if self.yaw < 0:
             angle = -self.yaw*180/math.pi
@@ -80,9 +80,9 @@ class Ridgeback:
         self.rad = math.radians(angle)
 
     def fixed_goal(self, goal_x, goal_y):
-        self.publish_state('0')
-        print(f'Executing ridgeback drawing #{self.state}')
+        print('Executing ridgeback')
         cmd = Twist()
+        print(f'MOVING to the goal #{goal_x}, #{goal_y}')
 
         while not self.reached:
             x_move = goal_x-self.position_x
@@ -100,11 +100,11 @@ class Ridgeback:
             dist = self.calculate_distance(goal)
             
             if not self.reached:
-                if dist > 0.3:
+                if dist > 0.01:
                     cmd.linear.x = self.linear_speed * r_goal[0][0]
                     cmd.linear.y = self.linear_speed * r_goal[1][0]
 
-                if dist < 0.3:
+                if dist < 0.01:
                     cmd.linear.x = 0
                     cmd.linear.y = 0
                     self.reached = True
@@ -119,7 +119,8 @@ class Ridgeback:
 
     def follow_trajectory(self, path, angles):
         for i in range(len(angles)):
-            self.fixed_rotate(0)
+            # self.fixed_rotate(0)
+            self.publish_state(1) # ridgeback moving
             result = self.fixed_goal(path[i][0] + self.wall_pose[0], path[i][1] + self.wall_pose[1])
 
             if result:
@@ -127,19 +128,20 @@ class Ridgeback:
                 rospy.loginfo("Rotating to calculated angle >>")
                 self.fixed_rotate(angles[i])
                 rospy.loginfo("DONE rotating >>")
-                self.iiwa_state = "1"
-                # self.publish_state(self.state)
-                # self.state += 1
+                self.iiwa_state = "-1"
+                self.publish_state(0) # ridgeback done
+
             else:
                 raise('unknown error')
 
-            while self.iiwa_state != "0":
-                self.publish_pose()
-                rospy.sleep(1)
-                print(f'Waiting for iiwa to stop drawing: iiwa state #{self.iiwa_state}')
-                print(f'IIWA done executing #{self.iiwa_state}')
+            while self.iiwa_state != "0": # iiwa moving
+                if self.iiwa_state != "1": # iiwa waiting
+                    rospy.sleep(2)
+                    self.publish_pose()
+                    rospy.sleep(2)
 
-            rospy.sleep(1)
+        self.publish_pose()
+        rospy.sleep(2)
 
     def publish_state(self, number):
         s = String()
@@ -151,10 +153,9 @@ class Ridgeback:
         P.position.x = self.position_x
         P.position.y = self.position_y
         P.orientation.x = self.yaw
-
+        # P.orientaiton = self.orientation_q
         self.publisher_pose.publish(P)
 
-    # TODO: angle should be right-hand coordinated
     def fixed_rotate(self, target_angle):
         command =Twist()
 
@@ -183,7 +184,7 @@ class Ridgeback:
         q = Quaternion()
         pose = Pose()
 
-        # NOT QUATERNION. orientation x is the theta value of z-rotation
+        # NOT QUATERNION. orientation x is the theta value of z-rotation in degree
         p.x = path_x
         p.y = path_y
         p.z = 0
@@ -277,6 +278,6 @@ if __name__ == '__main__':
     rospy.sleep(2)
     Rid.publish_trajectory()
     print('publish trajectory done')
-    Rid.fixed_rotate(0)
+    # Rid.fixed_rotate(0)  # temp
     print('rotated to 0 degrees for the first time')
     Rid.follow_trajectory(list(zip(Rid.path_x, Rid.path_y)), Rid.path_angle)
