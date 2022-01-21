@@ -9,6 +9,7 @@ class Iidgeback:
         self.i_center = [rx, ry]
         self.r_radius = radius
         self.i_radius = 0.3
+        self.ir_dist = 0.7
         self.cover_wall_amount = 0
         self.cover_point = []
         self.min_x = 0
@@ -34,20 +35,20 @@ class Iidgeback:
 
         return self.angle
 
-    def set_ridgeback(self, hypot= 0.5):
+    def set_ridgeback(self):
         x1, y1 = self.cover_point[0]
         x2, y2 = self.cover_point[-1]
         direction = (y2-y1)/(x2-x1)
         if direction >= 0:  # turn right
-            self.r_center[0] = self.i_center[0] - hypot*math.cos(self.angle)
-            self.r_center[1] = self.i_center[1] + hypot*math.sin(self.angle)
+            self.r_center[0] = self.i_center[0] - self.ir_dist*math.cos(self.angle)
+            self.r_center[1] = self.i_center[1] + self.ir_dist*math.sin(self.angle)
             # if not self.ridgeback_can_go(self.wall):
             #     self.r_center[0] = self.i_center[0] + hypot * math.cos(self.angle)
             # if not self.ridgeback_can_go(self.wall):
             #     self.r_center[1] = self.i_center[1] + hypot*math.sin(self.angle)
         else: # turn left
-            self.r_center[0] = self.i_center[0] - hypot*math.cos(self.angle)
-            self.r_center[1] = self.i_center[1] - hypot*math.sin(self.angle)
+            self.r_center[0] = self.i_center[0] - self.ir_dist*math.cos(self.angle)
+            self.r_center[1] = self.i_center[1] - self.ir_dist*math.sin(self.angle)
             # if not self.ridgeback_can_go(self.wall):
             #     self.r_center[0] = self.i_center[0] + hypot * math.cos(self.angle)
             # if not self.ridgeback_can_go(self.wall):
@@ -314,18 +315,6 @@ def to_iiwa_range(min_y_list, max_y_list):
     # print('\nto iiwa:')
     # print(to_iiwa)
     return to_iiwa
-
-def re_set_length(x_wall, y_wall):
-    img_size = 2/2 # m
-    center = (min(x_wall)+max(x_wall))/2
-    x_wall_limit, y_wall_limit = [], []
-    for i in range(len(x_wall)):
-        if center-img_size<x_wall[i]<center+img_size:
-            x_wall_limit.append(x_wall[i])
-            y_wall_limit.append(y_wall[i])
-    print(f'{min(x_wall)}, {max(x_wall)}')
-    print(f'center: {center}, from: {center-img_size}, to: {center+img_size}')
-    return x_wall_limit, y_wall_limit
 
 def run_algorithm(file_name = 'bee_hive_three'):
     
