@@ -1,11 +1,11 @@
 <launch>
   <!-- Arguments -->
   <arg name="open_rviz" default="true"/>
-  <arg name="config" default="drawing_realtime"/>
+  <arg name="config" default="drawing_markers"/>
   <arg name="scan_topic" default="front/scan" />
 
   <!-- Parameters from the file -->
-  <rosparam file="$(find large_scale_drawing)/data/config/bee_hive_ewha.config" />
+  <rosparam file="$(find large_scale_drawing)/data/config/bee_hive_gyeongbokgung.config" />
 
   <!-- ridgeback_move -->
   <node name="odom_publisher" pkg="large_scale_drawing" type="odom_publisher.py" respawn="false" output="screen"/>
