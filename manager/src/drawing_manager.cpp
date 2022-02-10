@@ -37,7 +37,7 @@ void DrawingManager::initMarker() {
   marker.color.r = 0.0;
   marker.color.g = 0.0;
   marker.color.b = 0.0;
-  marker.color.a = 0.3;
+  marker.color.a = 0.1;
 }
 
 void DrawingManager::initMoveGroup() {

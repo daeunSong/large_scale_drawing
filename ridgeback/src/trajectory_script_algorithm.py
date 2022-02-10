@@ -1,5 +1,7 @@
 import time, math
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+import matplotlib as mpl
 import numpy as np
 
 class Iidgeback:
@@ -15,6 +17,7 @@ class Iidgeback:
         self.min_x = 0
         self.max_x = 0
         self.wall = wall
+        self.angle = 0
 
     def set_angle(self):
         self.cover_point.sort(key=lambda x:x[1]) # sort with y
@@ -71,11 +74,47 @@ class Iidgeback:
         return True
     def in_iiwa_range(self, i, j):
         return ((i - self.i_center[0]) ** 2 + (j - self.i_center[1]) ** 2 - self.i_radius ** 2) < 0
+
+    def plot_rectangle(self,degree):
+        center = np.array([self.r_center[0], self.r_center[1]])
+        p1 = np.array([self.r_radius/2, self.r_radius/2])
+        p2 = np.array([-self.r_radius/2, self.r_radius/2])
+        p3 = np.array([-self.r_radius/2, -self.r_radius/2])
+        p4 = np.array([self.r_radius/2, -self.r_radius/2])
+
+        c, s = np.cos(np.radians(degree)), np.sin(np.radians(degree))
+        R = np.array(((c, -s), (s, c)))
+        p1 = np.matmul(R, p1)
+        p2 = np.matmul(R, p2)
+        p3 = np.matmul(R, p3)
+        p4 = np.matmul(R, p4)
+
+        p1 = p1 + center
+        p2 = p2 + center
+        p3 = p3 + center
+        p4 = p4 + center
+
+        plt.plot([p1[0],p2[0],p3[0],p4[0],p1[0]], [p1[1],p2[1],p3[1],p4[1],p1[1]], color='black', linewidth=1)
+
     def print_map(self):
         i_circle = plt.Circle((self.i_center[0], self.i_center[1]), self.i_radius, fill=None, alpha=1, color='orange')
         r_circle = plt.Circle((self.r_center[0], self.r_center[1]), self.r_radius, fill=None, alpha=1)
+
+        # r_rectangle = patches.Rectangle((self.r_center[0]-self.r_radius/2, self.r_center[1]-self.r_radius/2), self.r_radius, self.r_radius, fill=None, alpha=1)
+
+        # trans = plt.gca().transData
+        if self.i_center[1] > self.r_center[1]:
+            self.plot_rectangle(math.degrees(self.angle))
+            # rot = mpl.transforms.Affine2D().rotate_deg(math.degrees(self.angle))
+        else:
+            self.plot_rectangle(-math.degrees(self.angle))
+            # rot = mpl.transforms.Affine2D().rotate_deg(-math.degrees(self.angle))
+        # t = trans #+ rot
+        # r_rectangle.set_transform(t)
+
+        # plt.gca().add_patch(r_rectangle)
         plt.gca().add_patch(i_circle)
-        plt.gca().add_patch(r_circle)
+        # plt.gca().add_patch(r_circle)
 
     def cover_amount(self, wall):
         count = 0
@@ -344,6 +383,9 @@ def run_algorithm(file_name = 'bee_hive_three'):
 
     plt.plot(x, y, color="grey")
     plt.gca().set_aspect('equal', adjustable='box')
+    plt.xticks(rotation=-90)
+    plt.yticks(rotation=-90)
+
     plt.show()
     return iiwa_range_list, path_x, path_y, path_angle
 

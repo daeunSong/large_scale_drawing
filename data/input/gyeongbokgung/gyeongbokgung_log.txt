@@ -1,0 +1,11 @@
+gyeongbokgung
+COLORS :
+Color 0: [102	166	236]
+Color 1: [160	106	81]
+Color 2: [208	205	197]
+Color 3: [50	42	33]
+SIZE & TIME :
+Color 05412	4003.07 ms	760.727ms
+Color 13697	3654.12 ms	784.566ms
+Color 22391	3052.8 ms	724.552ms
+Color 33847	3631.24 ms	986.102ms

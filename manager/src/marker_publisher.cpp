@@ -144,7 +144,7 @@ geometry_msgs::Point MarkerPublisher::getEEPoint(){
 
 // Set color
 void MarkerPublisher::setColor(){
-  line_strip.color.a = 0.5;
+  line_strip.color.a = 1.0;
   line_strip.color.r = line_color.x;
   line_strip.color.g = line_color.y;
   line_strip.color.b = line_color.z;

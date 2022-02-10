@@ -87,12 +87,16 @@ geometry_msgs::PoseStamped DrawingMoveit::getCurrentPose(){
 
 void DrawingMoveit::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strokes, int range_num){
   if(drawing_strokes.color == 'c'){
+//    this->color.x = 102.0/255.0; this->color.y = 166.0/255.0; this->color.z = 236.0/255.0;   // cyan (0, 255, 255)
     this->color.x = 0.0; this->color.y = 1.0; this->color.z = 1.0;   // cyan (0, 255, 255)
   }else if(drawing_strokes.color == 'm'){
+//    this->color.x = 160.0/255.0; this->color.y = 106.0/255.0; this->color.z = 81.0/255.0;
     this->color.x = 1.0; this->color.y = 0.0; this->color.z = 1.0;   // magenta (255, 0, 255)
   }else if(drawing_strokes.color == 'y'){
+//    this->color.x = 208.0/255.0; this->color.y = 205.0/255.0; this->color.z = 197.0/255.0;
     this->color.x = 1.0; this->color.y = 1.0; this->color.z = 0.0;   // yellow (255, 255, 0)
   }else if(drawing_strokes.color == 'k'){
+//    this->color.x = 50.0/255.0; this->color.y = 42.0/255.0; this->color.z = 33.0/255.0;
     this->color.x = 0.0; this->color.y = 0.0; this->color.z = 0.0;   // black (0, 0, 0)
   }
 
