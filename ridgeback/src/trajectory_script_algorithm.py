@@ -1,20 +1,23 @@
 import time, math
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+import matplotlib as mpl
 import numpy as np
 
 class Iidgeback:
-    def __init__(self, id, rx, ry, wall, radius=0.622):
+    def __init__(self, id, rx, ry, wall, length=1.0):
         self.id = id
         self.r_center = [rx, ry]
         self.i_center = [rx, ry]
-        self.r_radius = radius
-        self.i_radius = 0.3
-        self.ir_dist = 0.7
+        self.r_length = length
+        self.i_radius = 0.4
+        self.ir_dist = 0.6
         self.cover_wall_amount = 0
         self.cover_point = []
         self.min_x = 0
         self.max_x = 0
         self.wall = wall
+        self.angle = 0
 
     def set_angle(self):
         self.cover_point.sort(key=lambda x:x[1]) # sort with y
@@ -66,16 +69,44 @@ class Iidgeback:
         return True
     def ridgeback_can_go(self, wall):
         for (i, j) in self.wall.uncovered + self.wall.covered:
-            if ((i - self.r_center[0]) ** 2 + (j - self.r_center[1]) ** 2 - (self.r_radius + 0.1) ** 2) <= 0:
+            if ((i - self.r_center[0]) ** 2 + (j - self.r_center[1]) ** 2 - (self.r_length + 0.1) ** 2) <= 0:
                 return False
         return True
     def in_iiwa_range(self, i, j):
         return ((i - self.i_center[0]) ** 2 + (j - self.i_center[1]) ** 2 - self.i_radius ** 2) < 0
+
+    def plot_rectangle(self, degree):
+        center = np.array([self.r_center[0], self.r_center[1]])
+        p1 = np.array([self.r_length/2, self.r_length/2])
+        p2 = np.array([-self.r_length/2, self.r_length/2])
+        p3 = np.array([-self.r_length/2, -self.r_length/2])
+        p4 = np.array([self.r_length/2, -self.r_length/2])
+
+        c, s = np.cos(np.radians(degree)), np.sin(np.radians(degree))
+        R = np.array(((c, -s), (s, c)))
+        p1 = np.matmul(R, p1)
+        p2 = np.matmul(R, p2)
+        p3 = np.matmul(R, p3)
+        p4 = np.matmul(R, p4)
+
+        p1 = p1 + center
+        p2 = p2 + center
+        p3 = p3 + center
+        p4 = p4 + center
+
+        plt.plot([p1[0],p2[0],p3[0],p4[0],p1[0]], [p1[1],p2[1],p3[1],p4[1],p1[1]], color='black', linewidth=1)
+
     def print_map(self):
         i_circle = plt.Circle((self.i_center[0], self.i_center[1]), self.i_radius, fill=None, alpha=1, color='orange')
-        r_circle = plt.Circle((self.r_center[0], self.r_center[1]), self.r_radius, fill=None, alpha=1)
+        # r_circle = plt.Circle((self.r_center[0], self.r_center[1]), self.r_length, fill=None, alpha=1)
+
+        if self.i_center[1] > self.r_center[1]:
+            self.plot_rectangle(math.degrees(self.angle))
+        else:
+            self.plot_rectangle(-math.degrees(self.angle))
+
         plt.gca().add_patch(i_circle)
-        plt.gca().add_patch(r_circle)
+        # plt.gca().add_patch(r_circle)
 
     def cover_amount(self, wall):
         count = 0
@@ -344,6 +375,8 @@ def run_algorithm(file_name = 'bee_hive_three'):
 
     plt.plot(x, y, color="grey")
     plt.gca().set_aspect('equal', adjustable='box')
+    plt.xticks(rotation=-90)
+    plt.yticks(rotation=-90)
     plt.show()
     return iiwa_range_list, path_x, path_y, path_angle
 
