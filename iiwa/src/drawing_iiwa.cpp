@@ -1,36 +1,82 @@
-#include "drawing_input.h"
+#include "drawing_iiwa.h"
 
-#include <ros/ros.h>
-#include <ros/package.h>
+DrawingIIWA::DrawingIIWA(ros::NodeHandle &nh, std::string ee_link_, std::string reference_frame){
+  int state = DrawingIIWA::init(nh, ee_link_);
 
-#include <actionlib/client/simple_action_client.h>
-#include <iiwa_msgs/MoveToJointPositionAction.h>
-#include <iiwa_msgs/MoveAlongSplineAction.h>
-#include <iiwa_msgs/SetPTPJointSpeedLimits.h>
-#include <iiwa_msgs/SetPTPCartesianSpeedLimits.h>
-#include <iiwa_msgs/SetSmartServoLinSpeedLimits.h>
-#include <iiwa_msgs/SetEndpointFrame.h>
-#include <iiwa_ros/command/cartesian_pose_linear.hpp>
-#include <iiwa_ros/state/cartesian_pose.hpp>
-#include <iiwa_ros/service/control_mode.hpp>
-#include <iiwa_ros/service/time_to_destination.hpp>
-#include <iiwa_ros/iiwa_ros.hpp>
-#include <iiwa_ros/conversions.hpp>
+  // Move robot to the initial pose
+  this->moveInitPose();
+  this->init_pose = this->getCurrentPose();
+}
 
+int DrawingIIWA::init(ros::NodeHandle &nh, std::string ee_link_){
+  // Set speed limit for motions in joint coordinates
+  if (!this->setPTPJointSpeedLimits(nh))
+    return 0;
+  // Set speed limits for motions in cartesian coordinates
+  if (!this->setPTPCartesianSpeedLimits(nh))
+    return 0;
+  if (!this->setSmartServoLinSpeedLimits(nh))
+    return 0;
+  // Set endpoint frame to flange, so that our Cartesian target coordinates are tool independent
+  if (!this->setEndpointFrame(nh, ee_link_))
+    return 0;
 
-#include <fstream>
-#include <iostream>
-#include <string>
-#include <vector>
+  // Low stiffness only along Z.
+  this->cartesian_stiffness = iiwa_ros::conversions::CartesianQuantityFromFloat(1500,1500,350,300,300,300);
+  this->cartesian_damping = iiwa_ros::conversions::CartesianQuantityFromFloat(0.7);
 
-#define BACKWARD 0.05
+  this->iiwa_pose_command.init("iiwa");
+  this->iiwa_pose_state.init("iiwa");
+  this->iiwa_control_mode.init("iiwa");
+  this->iiwa_time_destination.init("iiwa");
 
-using namespace std;
+//  // Create the action clients
+//  // Passing "true" causes the clients to spin their own threads
+//  this->jointPositionClient = actionlib::SimpleActionClient<iiwa_msgs::MoveToJointPositionAction>("/iiwa/action/move_to_joint_position", true);
+//  this->splineMotionClient = actionlib::SimpleActionClient<iiwa_msgs::MoveAlongSplineAction>("/iiwa/action/move_along_spline", true);
+
+  ROS_INFO("Waiting for action servers to start...");
+  // Wait for the action servers to start
+  this->jointPositionClient.waitForServer(); //will wait for infinite time
+  this->splineMotionClient.waitForServer();
+
+  return 1;
+}
+
+int DrawingIIWA::moveInitPose(){
+  iiwa_msgs::MoveToJointPositionGoal jointPositionGoal;
+  jointPositionGoal.joint_position.position.a1 =  0.00;
+  jointPositionGoal.joint_position.position.a2 =  0.435332;
+  jointPositionGoal.joint_position.position.a3 =  0.00;
+  jointPositionGoal.joint_position.position.a4 = -1.91986;
+  jointPositionGoal.joint_position.position.a5 =  0.00;
+  jointPositionGoal.joint_position.position.a6 = -0.785399;
+  jointPositionGoal.joint_position.position.a7 = -0.523599;
+  // Send goal to action server
+  this->jointPositionClient.sendGoal(jointPositionGoal);
+
+  // Wait for the action to finish
+  bool finished_before_timeout = jointPositionClient.waitForResult(ros::Duration(60.0));
+
+  if (!finished_before_timeout) {
+    ROS_WARN("iiwa motion timed out - exiting...");
+    return 0;
+  }
+  else if (!this->jointPositionClient.getResult()->success) {
+    ROS_ERROR("Action execution failed - exiting...");
+    return 0;
+  }
+  return 1;
+}
+
+iiwa_msgs::CartesianPose DrawingIIWA::getCurrentPose(){
+  return this->iiwa_pose_state.getPose();
+}
 
 // getTimeToDestination() can also return negative values and the info from the cabinet take some milliseconds to update once the motion is started.
 // That means that if you call getTimeToDestination() right after you set a target pose, you might get the wrong info (e.g. a negative number).
 // This function tried to call getTimeToDestination() until something meaningful is obtained or until a maximum amount of time passed.
-void sleepForMotion(iiwa_ros::service::TimeToDestinationService& iiwa, const double maxSleepTime) {
+void DrawingIIWA::sleepForMotion(iiwa_ros::service::TimeToDestinationService& iiwa, const double maxSleepTime) {
   double ttd = iiwa.getTimeToDestination();
   ros::Time start_wait = ros::Time::now();
   while (ttd < 0.0 && (ros::Time::now() - start_wait) < ros::Duration(maxSleepTime)) {
@@ -43,7 +89,7 @@ void sleepForMotion(iiwa_ros::service::TimeToDestinationService& iiwa, const dou
   }
 }
 
-static iiwa_msgs::SplineSegment getSplineSegment (geometry_msgs::Pose waypoint_pose, int type = iiwa_msgs::SplineSegment::SPL) {
+iiwa_msgs::SplineSegment DrawingIIWA::getSplineSegment (geometry_msgs::Pose waypoint_pose, int type=iiwa_msgs::SplineSegment::SPL) {
   iiwa_msgs::SplineSegment segment;
   // Segment type
   segment.type = type;
@@ -65,7 +111,7 @@ static iiwa_msgs::SplineSegment getSplineSegment (geometry_msgs::Pose waypoint_p
   return segment;
 }
 
-static bool setPTPJointSpeedLimits(ros::NodeHandle& nh) {
+bool DrawingIIWA::setPTPJointSpeedLimits(ros::NodeHandle& nh) {
   ROS_INFO("Setting PTP joint speed limits...");
   ros::ServiceClient setPTPJointSpeedLimitsClient = nh.serviceClient<iiwa_msgs::SetPTPJointSpeedLimits>("/iiwa/configuration/setPTPJointLimits");
   iiwa_msgs::SetPTPJointSpeedLimits jointSpeedLimits;
@@ -84,7 +130,7 @@ static bool setPTPJointSpeedLimits(ros::NodeHandle& nh) {
   return true;
 }
 
-static bool setPTPCartesianSpeedLimits(ros::NodeHandle& nh) {
+bool DrawingIIWA::setPTPCartesianSpeedLimits(ros::NodeHandle& nh) {
   ROS_INFO("Setting PTP Cartesian speed limits...");
   ros::ServiceClient setPTPCartesianSpeedLimitsClient = nh.serviceClient<iiwa_msgs::SetPTPCartesianSpeedLimits>("/iiwa/configuration/setPTPCartesianLimits");
   iiwa_msgs::SetPTPCartesianSpeedLimits cartesianSpeedLimits;
@@ -107,7 +153,7 @@ static bool setPTPCartesianSpeedLimits(ros::NodeHandle& nh) {
   return true;
 }
 
-static bool setSmartServoLinSpeedLimits(ros::NodeHandle& nh) {
+bool DrawingIIWA::setSmartServoLinSpeedLimits(ros::NodeHandle& nh) {
   ROS_INFO("Setting SmartServo Cartesian speed limits...");
   ros::ServiceClient setSmartServoLinSpeedLimitsClient = nh.serviceClient<iiwa_msgs::SetSmartServoLinSpeedLimits>("/iiwa/configuration/setSmartServoLinLimits");
   iiwa_msgs::SetSmartServoLinSpeedLimits smartServoLinLimits;
@@ -131,7 +177,7 @@ static bool setSmartServoLinSpeedLimits(ros::NodeHandle& nh) {
   return true;
 }
 
-static bool setEndpointFrame(ros::NodeHandle& nh, std::string frameId = "iiwa_link_ee") {
+bool DrawingIIWA::setEndpointFrame(ros::NodeHandle& nh, std::string frameId="iiwa_link_ee") {
   ROS_INFO_STREAM("Setting endpoint frame to \""<<frameId<<"\"...");
   ros::ServiceClient setEndpointFrameClient = nh.serviceClient<iiwa_msgs::SetEndpointFrame>("/iiwa/configuration/setEndpointFrame");
   iiwa_msgs::SetEndpointFrame endpointFrame;
@@ -149,330 +195,44 @@ static bool setEndpointFrame(ros::NodeHandle& nh, std::string frameId = "iiwa_li
   return true;
 }
 
+void DrawingIIWA::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strokes, int range_num){
 
-int main (int argc, char **argv)
-{
-  ros::init(argc, argv, "CommandRobotIIWA");
-  ros::NodeHandle nh;
-
-  // Set speed limit for motions in joint coordinates
-  if (!setPTPJointSpeedLimits(nh)) {
-    return 1;
-  }
-
-  // Set speed limits for motions in cartesian coordinates
-  if (!setPTPCartesianSpeedLimits(nh)) {
-    return 1;
-  }
-
-  if (!setSmartServoLinSpeedLimits(nh)) {
-    return 1;
-  }
-
-  // Set endpoint frame to flange, so that our Cartesian target coordinates are tool independent
-  if (!setEndpointFrame(nh)) {
-    return 1;
-  }
-
-  iiwa_ros::command::CartesianPoseLinear iiwa_pose_command;
-  iiwa_ros::state::CartesianPose iiwa_pose_state;
-
-  // for Cartesian Impedance Control
-  iiwa_ros::service::ControlModeService iiwa_control_mode;
-  iiwa_ros::service::TimeToDestinationService iiwa_time_destination;
-  // Low stiffness only along Z.
-  iiwa_msgs::CartesianQuantity cartesian_stiffness = iiwa_ros::conversions::CartesianQuantityFromFloat(1500,1500,350,300,300,300);
-  iiwa_msgs::CartesianQuantity cartesian_damping = iiwa_ros::conversions::CartesianQuantityFromFloat(0.7);
-
-  std::vector<geometry_msgs::Pose> drawing_stroke;
-  geometry_msgs::Pose drawing_point;
-
-  iiwa_pose_command.init("iiwa");
-  iiwa_pose_state.init("iiwa");
-  iiwa_control_mode.init("iiwa");
-  iiwa_time_destination.init("iiwa");
-
-  // Create the action clients
-  // Passing "true" causes the clients to spin their own threads
-  actionlib::SimpleActionClient<iiwa_msgs::MoveToJointPositionAction> jointPositionClient("/iiwa/action/move_to_joint_position", true);
-  actionlib::SimpleActionClient<iiwa_msgs::MoveAlongSplineAction> splineMotionClient("/iiwa/action/move_along_spline", true);
-
-
-  ROS_INFO("Waiting for action servers to start...");
-  // Wait for the action servers to start
-  jointPositionClient.waitForServer(); //will wait for infinite time
-  splineMotionClient.waitForServer();
-
-  // ROS spinner.
-  ros::AsyncSpinner spinner(1);
-  spinner.start();
-  ROS_INFO("Spinner started...");
-
-  ROS_INFO("Action server started, moving to start pose...");
-  // Define a goal
-  iiwa_msgs::MoveToJointPositionGoal jointPositionGoal;
-  jointPositionGoal.joint_position.position.a1 =  0.00;
-  jointPositionGoal.joint_position.position.a2 =  0.435332;
-  jointPositionGoal.joint_position.position.a3 =  0.00;
-  jointPositionGoal.joint_position.position.a4 = -1.91986;
-  jointPositionGoal.joint_position.position.a5 =  0.00;
-  jointPositionGoal.joint_position.position.a6 = -0.785399;
-  jointPositionGoal.joint_position.position.a7 = -0.523599;
-  // Send goal to action server
-  jointPositionClient.sendGoal(jointPositionGoal);
-
-  // Wait for the action to finish
-  bool finished_before_timeout = jointPositionClient.waitForResult(ros::Duration(60.0));
-
-  if (!finished_before_timeout) {
-    ROS_WARN("iiwa motion timed out - exiting...");
-    return 0;
-  }
-  else if (!jointPositionClient.getResult()->success) {
-    ROS_ERROR("Action execution failed - exiting...");
-    return 0;
-  }
-
-  ros::Duration(3).sleep(); // wait for 3 sec
-
-  // Get Current Position
-  iiwa_msgs::CartesianPose wall_pose, init_pose;
-  iiwa_msgs::CartesianPose command_cartesian_position;
-  init_pose = iiwa_pose_state.getPose();
-  command_cartesian_position = init_pose;
-
-  // Move forward to detect the wall
-  ROS_INFO("Start detecting the wall");
-  iiwa_msgs::MoveAlongSplineGoal splineMotion;
-  splineMotion.spline.segments.push_back(getSplineSegment(command_cartesian_position.poseStamped.pose, iiwa_msgs::SplineSegment::LIN));
-  command_cartesian_position.poseStamped.pose.position.x += BACKWARD;
-  splineMotion.spline.segments.push_back(getSplineSegment(command_cartesian_position.poseStamped.pose, iiwa_msgs::SplineSegment::LIN));
-
-  // Execute motion
-  splineMotionClient.sendGoal(splineMotion);
-  splineMotionClient.waitForResult();
-  splineMotion.spline.segments.clear();
-
-  ros::Duration(2).sleep(); // wait for 3 sec
-  wall_pose = iiwa_pose_state.getPose();
-
-
-  command_cartesian_position = wall_pose;
-  double x = wall_pose.poseStamped.pose.position.x;//0.478509765292;  // DEPTH
-  double y = wall_pose.poseStamped.pose.position.y;//0;
-  double z = wall_pose.poseStamped.pose.position.z;//0.613500561539;  // HEIGHT
-  drawing_point = wall_pose.poseStamped.pose;
-  drawing_point.position.x += 0.003;  // 3mm deeper
-  drawing_point.position.z += 0.05;  // up 5cm
-
-  ros::Duration(2).sleep(); // wait for 3 sec
-
-  ROS_INFO("Moving Backward ... ");
-  iiwa_control_mode.setPositionControlMode();
-  command_cartesian_position.poseStamped.pose.position.x -= BACKWARD;
-  iiwa_pose_command.setPose(command_cartesian_position.poseStamped);
-  sleepForMotion(iiwa_time_destination, 2.0);
-  ros::Duration(0.2).sleep();
-
-
-  // Read darwing inputs
-  DrawingInput drawing_c("/data/input/ewha/","ewha_full_path_",'c',".txt", drawing_point);
-  DrawingInput drawing_m("/data/input/ewha/","ewha_full_path_",'m',".txt", drawing_point);
-  DrawingInput drawing_y("/data/input/ewha/","ewha_full_path_",'y',".txt", drawing_point);
-  DrawingInput drawing_k("/data/input/ewha/","ewha_full_path_",'k',".txt", drawing_point);
-
-  int range_num = drawing_c.strokes_by_range.size();
-
-  bool init = true;
+  // drawing commands related
+  std_msgs::Bool ready;
   int j = 0;
 
-  while(ros::ok() && init) {
-    char input;
-    for (int i = range_num-1; i >= 0; i--) { // for color
+  iiwa_msgs::CartesianPose command_cartesian_position;
+  command_cartesian_position = this->init_pose;
+  iiwa_msgs::MoveAlongSplineGoal splineMotion;
 
-      ///////////////////////////////////////////////////////////////////////
-      // Y
-      j = 0;
-      for (auto strokes : drawing_y.strokes_by_range[i]) {
-        // move to ready position
-        iiwa_control_mode.setPositionControlMode();
-        command_cartesian_position.poseStamped.pose = strokes[0];
-        command_cartesian_position.poseStamped.pose.position.x -= BACKWARD/2;
-        iiwa_pose_command.setPose(command_cartesian_position.poseStamped);
-        sleepForMotion(iiwa_time_destination, 3.0);
-        ros::Duration(1.0).sleep();
+  for (auto stroke : drawing_strokes.strokes_by_range[range_num]) {
+    this->iiwa_control_mode.setPositionControlMode();
+    command_cartesian_position.poseStamped.pose = stroke[0];
+    command_cartesian_position.poseStamped.pose.position.x -= BACKWARD/2;
 
-        // draw a stroke
-        cout << "Drawing YELLOW " << i << "th range, " << j << "th stroke ... " << endl;
-        splineMotion.spline.segments.push_back(getSplineSegment(strokes[0], iiwa_msgs::SplineSegment::LIN));
-        for (int j = 1 ; j < strokes.size(); j++)
-          splineMotion.spline.segments.push_back(getSplineSegment(strokes[j], iiwa_msgs::SplineSegment::SPL));
-        splineMotionClient.sendGoal(splineMotion);
-        splineMotionClient.waitForResult();
-        splineMotion.spline.segments.clear();
+    // move to ready position in position control
+    this->iiwa_pose_command.setPose(command_cartesian_position.poseStamped);
+    this->sleepForMotion(this->iiwa_time_destination, 3.0);
+    ros::Duration(1.0).sleep();
 
-        // move backward
-        iiwa_control_mode.setPositionControlMode();
-        command_cartesian_position.poseStamped.pose = strokes.back();
-        command_cartesian_position.poseStamped.pose.position.x -= BACKWARD;
-        iiwa_pose_command.setPose(command_cartesian_position.poseStamped);
-        sleepForMotion(iiwa_time_destination, 3.0);
-        ros::Duration(0.5).sleep();
-        j++;
-      }
+    // draw
+    std::cout << "Drawing " << drawing_strokes.color << " " << range_num << "th range, " << j << "th stroke ... " << std::endl;
 
-      // move to init position
-      iiwa_control_mode.setPositionControlMode();
-      iiwa_pose_command.setPose(init_pose.poseStamped);
-      sleepForMotion(iiwa_time_destination, 3.0);
+    splineMotion.spline.segments.push_back(this->getSplineSegment(stroke[0], iiwa_msgs::SplineSegment::LIN));
+    for (int j = 1 ; j < stroke.size(); j++)
+      splineMotion.spline.segments.push_back(this->getSplineSegment(stroke[j], iiwa_msgs::SplineSegment::SPL));
+    this->splineMotionClient.sendGoal(splineMotion);
+    this->splineMotionClient.waitForResult();
+    splineMotion.spline.segments.clear();
 
-      ///////////////////////////////////////////////////////////////////////
-
-      cout << "Change Color to MAGENTA" << endl;
-      cin >> input;
-
-      ///////////////////////////////////////////////////////////////////////
-      // M
-      j = 0;
-      cout << "DRAW MAGENTA" << endl;
-      for (auto strokes : drawing_m.strokes_by_range[i]) {
-        cout << "drawing! point num: " << strokes.size() << endl;
-        // move to ready position
-        ROS_INFO("Move to Ready position");
-        iiwa_control_mode.setPositionControlMode();
-        command_cartesian_position.poseStamped.pose = strokes[0];
-        command_cartesian_position.poseStamped.pose.position.x -= BACKWARD/2;
-        iiwa_pose_command.setPose(command_cartesian_position.poseStamped);
-        sleepForMotion(iiwa_time_destination, 3.0);
-        ros::Duration(1.0).sleep();
-
-        // draw a stroke
-        cout << "Drawing MAGENTA " << i << "th range, " << j << "th stroke ... " << endl;
-        splineMotion.spline.segments.push_back(getSplineSegment(strokes[0], iiwa_msgs::SplineSegment::LIN));
-        for (int j = 1 ; j < strokes.size(); j++)
-          splineMotion.spline.segments.push_back(getSplineSegment(strokes[j], iiwa_msgs::SplineSegment::SPL));
-        splineMotionClient.sendGoal(splineMotion);
-        splineMotionClient.waitForResult();
-        splineMotion.spline.segments.clear();
-
-        // move backward
-        iiwa_control_mode.setPositionControlMode();
-        command_cartesian_position.poseStamped.pose = strokes.back();
-        command_cartesian_position.poseStamped.pose.position.x -= BACKWARD;
-        iiwa_pose_command.setPose(command_cartesian_position.poseStamped);
-        sleepForMotion(iiwa_time_destination, 3.0);
-        ros::Duration(0.5).sleep();
-        j++;
-      }
-
-      // move to init position
-      iiwa_control_mode.setPositionControlMode();
-      iiwa_pose_command.setPose(init_pose.poseStamped);
-      sleepForMotion(iiwa_time_destination, 3.0);
-
-      ///////////////////////////////////////////////////////////////////////
-
-      cout << "Change Color to CYAN" << endl;
-      cin >> input;
-
-      ///////////////////////////////////////////////////////////////////////
-      // C
-      j = 0;
-      for (auto strokes : drawing_c.strokes_by_range[i]) {
-        // move to ready position
-        iiwa_control_mode.setPositionControlMode();
-        command_cartesian_position.poseStamped.pose = strokes[0];
-        command_cartesian_position.poseStamped.pose.position.x -= BACKWARD/2;
-        iiwa_pose_command.setPose(command_cartesian_position.poseStamped);
-        sleepForMotion(iiwa_time_destination, 3.0);
-        ros::Duration(1.0).sleep();
-
-        // draw a stroke
-        cout << "Drawing CYAN " << i << "th range, " << j << "th stroke ... " << endl;
-        splineMotion.spline.segments.push_back(getSplineSegment(strokes[0], iiwa_msgs::SplineSegment::LIN));
-        for (int j = 1 ; j < strokes.size(); j++)
-          splineMotion.spline.segments.push_back(getSplineSegment(strokes[j], iiwa_msgs::SplineSegment::SPL));
-        splineMotionClient.sendGoal(splineMotion);
-        splineMotionClient.waitForResult();
-        splineMotion.spline.segments.clear();
-
-        // move backward
-        iiwa_control_mode.setPositionControlMode();
-        command_cartesian_position.poseStamped.pose = strokes.back();
-        command_cartesian_position.poseStamped.pose.position.x -= BACKWARD;
-        iiwa_pose_command.setPose(command_cartesian_position.poseStamped);
-        sleepForMotion(iiwa_time_destination, 3.0);
-        ros::Duration(0.5).sleep();
-        j++;
-      }
-
-      // move init position
-      iiwa_control_mode.setPositionControlMode();
-      iiwa_pose_command.setPose(init_pose.poseStamped);
-      sleepForMotion(iiwa_time_destination, 3.0);
-
-      ///////////////////////////////////////////////////////////////////////
-
-      cout << "Change Color to BLACK" << endl;
-      cin >> input;
-
-      ///////////////////////////////////////////////////////////////////////
-      // BLACK
-      j = 0;
-      for (auto strokes : drawing_k.strokes_by_range[i]) {
-        // move to ready position
-        iiwa_control_mode.setPositionControlMode();
-        command_cartesian_position.poseStamped.pose = strokes[0];
-        command_cartesian_position.poseStamped.pose.position.x -= BACKWARD/2;
-        iiwa_pose_command.setPose(command_cartesian_position.poseStamped);
-        sleepForMotion(iiwa_time_destination, 3.0);
-        ros::Duration(1.0).sleep();
-
-        // draw a stroke
-        cout << "Drawing YELLOW " << i << "th range, " << j << "th stroke ... " << endl;
-        splineMotion.spline.segments.push_back(getSplineSegment(strokes[0], iiwa_msgs::SplineSegment::LIN));
-        for (int j = 1 ; j < strokes.size(); j++)
-          splineMotion.spline.segments.push_back(getSplineSegment(strokes[j], iiwa_msgs::SplineSegment::SPL));
-        splineMotionClient.sendGoal(splineMotion);
-        splineMotionClient.waitForResult();
-        splineMotion.spline.segments.clear();
-
-        iiwa_control_mode.setPositionControlMode();
-        command_cartesian_position.poseStamped.pose = strokes.back();
-        command_cartesian_position.poseStamped.pose.position.x -= BACKWARD;
-        iiwa_pose_command.setPose(command_cartesian_position.poseStamped);
-        sleepForMotion(iiwa_time_destination, 3.0);
-        ros::Duration(0.5).sleep();
-        j++;
-      }
-
-      // move to init position
-      iiwa_control_mode.setPositionControlMode();
-      iiwa_pose_command.setPose(init_pose.poseStamped);
-      sleepForMotion(iiwa_time_destination, 3.0);
-
-      ///////////////////////////////////////////////////////////////////////
-
-      // range done
-      // move ridgeback
-      if (i != 0) {
-        float diff = (drawing_c.ranges[i][1] + drawing_c.ranges[i][0])/2 - (drawing_c.ranges[i-1][1] + drawing_c.ranges[i-1][0])/2;
-        cout << "MOVE ridgeback " << diff << " meters in right" << endl;
-        cout << "Change color to YELLOW and press any character with ENTER" << endl;
-        cin >> input;
-      }
-    }
-    init = false;
+    // move backward
+    this->iiwa_control_mode.setPositionControlMode();
+    command_cartesian_position.poseStamped.pose = stroke.back();
+    command_cartesian_position.poseStamped.pose.position.x -= BACKWARD;
+    this->iiwa_pose_command.setPose(command_cartesian_position.poseStamped);
+    this->sleepForMotion(this->iiwa_time_destination, 3.0);
+    ros::Duration(0.5).sleep();
+    j++;
   }
-
-  ROS_INFO("Moving To Init Position ... ");
-  iiwa_control_mode.setPositionControlMode();
-  iiwa_pose_command.setPose(init_pose.poseStamped);
-  sleepForMotion(iiwa_time_destination, 3.0);
-
-  spinner.stop();
-  ROS_INFO("Done.");
-
-  //exit
-  return 0;
 }
+

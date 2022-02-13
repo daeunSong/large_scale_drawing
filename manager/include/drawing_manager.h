@@ -1,4 +1,4 @@
-#include "drawing_moveit.h"
+#include "drawing_iiwa.h"
 
 #include <ros/ros.h>
 #include <ros/package.h>
