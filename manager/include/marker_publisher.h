@@ -1,7 +1,9 @@
 #include <ros/ros.h>
 #include <std_msgs/Bool.h>
+#include <nav_msgs/Odometry.h>
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/PoseArray.h>
+#include <geometry_msgs/Pose.h>
 #include <visualization_msgs/Marker.h>
 #include <rviz_visual_tools/rviz_visual_tools.h>
 #include <tf/transform_listener.h>
@@ -19,11 +21,13 @@ class MarkerPublisher {
     MarkerPublisher(ros::NodeHandle* nh);
 
     bool ready_to_draw = false;
+    bool init = false;
     visualization_msgs::Marker line_strip;
     visualization_msgs::Marker wall;
 
     std::string wall_file_name;
-    std::vector<double> wall_pose;
+    std::vector<float> wall_pose;
+    geometry_msgs::Pose wall_;
     void initWall();
 
     ros::Publisher marker_pub;
@@ -50,9 +54,12 @@ class MarkerPublisher {
     ros::Subscriber color_sub;
     ros::Subscriber traj_sub;
     ros::Subscriber coord_sub; //
+    ros::Subscriber wall_sub;
+
 
     void drawCallback(const std_msgs::Bool::ConstPtr& msg);
     void colorCallback(const geometry_msgs::Point::ConstPtr& msg);
     void trajCallback(const geometry_msgs::PoseArray::ConstPtr& msg);
-    void coordCallback(const geometry_msgs::Pose::ConstPtr& msg); //
+    void coordCallback(const geometry_msgs::Pose::ConstPtr& msg);
+    void wallCallback(const nav_msgs::Odometry::ConstPtr& msg);
 };

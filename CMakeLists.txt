@@ -30,6 +30,9 @@ ADD_LIBRARY(drawingInput
 ADD_LIBRARY(drawingMoveit
   iiwa/src/moveit/drawing_moveit.cpp
 )
+ADD_LIBRARY(drawingIIWA
+  iiwa/src/drawing_iiwa.cpp
+)
 
 #add_message_files(
 #  FILES
@@ -52,9 +55,9 @@ catkin_package()
 
 add_executable(drawing_manager manager/src/drawing_manager.cpp)
 add_dependencies(drawing_manager iiwa_msgs_generate_messages_cpp)
-target_link_libraries(drawing_manager drawingInput drawingMoveit ${catkin_LIBRARIES}) #
+target_link_libraries(drawing_manager drawingInput drawingIIWA ${catkin_LIBRARIES}) #
 
-add_executable(marker_publisher manager/src/marker_publisher.cpp)
+add_executable(marker_publisher manager/src/marker_publisher_tracker.cpp)
 add_dependencies(marker_publisher iiwa_msgs_generate_messages_cpp)
 target_link_libraries(marker_publisher ${catkin_LIBRARIES})
 

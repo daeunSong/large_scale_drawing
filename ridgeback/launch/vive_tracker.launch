@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="large_scale_drawing" name="vive_tracker_calibration" type="vive_tracker_calibration.py" output="screen" />
+  <node pkg="large_scale_drawing" name="tf_publisher" type="tf_publisher.py" output="screen" />
+</launch>
+
