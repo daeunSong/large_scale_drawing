@@ -53,8 +53,8 @@ void MarkerPublisher::initWall() {
   wall_marker.action = visualization_msgs::Marker::ADD;
 
   geometry_msgs::Pose marker_pose;
-  marker_pose.position.x = wall_pose[0] + 0.015;
-  marker_pose.position.y = wall_pose[1] + 0.015;
+  marker_pose.position.x = wall_pose[0] + 0.02;
+  marker_pose.position.y = wall_pose[1];// + 0.015;
   marker_pose.position.z = wall_pose[2];
   marker_pose.orientation.x = wall_pose[3];
   marker_pose.orientation.y = wall_pose[4];
@@ -159,7 +159,7 @@ void MarkerPublisher::publishLine(float id) {
 
   if (ready_to_draw) {
     line_strip.points.push_back(p);
-    if(line_strip.points.size() > 10){
+    if(line_strip.points.size() > 2){
       marker_pub.publish(line_strip);
       line_strip.points.erase(line_strip.points.begin());
       line_strip.points.push_back(p);

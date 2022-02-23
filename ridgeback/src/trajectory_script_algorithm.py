@@ -5,13 +5,13 @@ import matplotlib as mpl
 import numpy as np
 
 class Iidgeback:
-    def __init__(self, id, rx, ry, wall, radius=0.622):
+    def __init__(self, id, rx, ry, wall, length=0.6):
         self.id = id
         self.r_center = [rx, ry]
         self.i_center = [rx, ry]
-        self.r_radius = radius
-        self.i_radius = 0.3
-        self.ir_dist = 0.7
+        self.r_length = length
+        self.i_radius = 0.4#0.49 # 0.4
+        self.ir_dist = 0.6#0.454 # 0.6
         self.cover_wall_amount = 0
         self.cover_point = []
         self.min_x = 0
@@ -29,11 +29,8 @@ class Iidgeback:
         self.angle = math.pi/2 - angle
         if x2 < x1:
             self.direction = 'l'
-            # print('left')
         else:
             self.direction = 'r'
-            # print('right')
-        print('--------------------angle: ',math.degrees(self.angle))
         self.set_ridgeback()
 
         return self.angle
@@ -69,18 +66,18 @@ class Iidgeback:
         return True
     def ridgeback_can_go(self, wall):
         for (i, j) in self.wall.uncovered + self.wall.covered:
-            if ((i - self.r_center[0]) ** 2 + (j - self.r_center[1]) ** 2 - (self.r_radius + 0.1) ** 2) <= 0:
+            if ((i - self.r_center[0]) ** 2 + (j - self.r_center[1]) ** 2 - (self.r_length + 0.1) ** 2) <= 0:
                 return False
         return True
     def in_iiwa_range(self, i, j):
         return ((i - self.i_center[0]) ** 2 + (j - self.i_center[1]) ** 2 - self.i_radius ** 2) < 0
 
-    def plot_rectangle(self,degree):
+    def plot_rectangle(self, degree):
         center = np.array([self.r_center[0], self.r_center[1]])
-        p1 = np.array([self.r_radius/2, self.r_radius/2])
-        p2 = np.array([-self.r_radius/2, self.r_radius/2])
-        p3 = np.array([-self.r_radius/2, -self.r_radius/2])
-        p4 = np.array([self.r_radius/2, -self.r_radius/2])
+        p1 = np.array([self.r_length/2, self.r_length/2])
+        p2 = np.array([-self.r_length/2, self.r_length/2])
+        p3 = np.array([-self.r_length/2, -self.r_length/2])
+        p4 = np.array([self.r_length/2, -self.r_length/2])
 
         c, s = np.cos(np.radians(degree)), np.sin(np.radians(degree))
         R = np.array(((c, -s), (s, c)))
@@ -98,23 +95,22 @@ class Iidgeback:
 
     def print_map(self):
         i_circle = plt.Circle((self.i_center[0], self.i_center[1]), self.i_radius, fill=None, alpha=1, color='orange')
-        r_circle = plt.Circle((self.r_center[0], self.r_center[1]), self.r_radius, fill=None, alpha=1)
+        r_circle = plt.Circle((self.r_center[0], self.r_center[1]), self.r_length, fill=None, alpha=1)
 
-        # r_rectangle = patches.Rectangle((self.r_center[0]-self.r_radius/2, self.r_center[1]-self.r_radius/2), self.r_radius, self.r_radius, fill=None, alpha=1)
-
-        # trans = plt.gca().transData
-        if self.i_center[1] > self.r_center[1]:
-            self.plot_rectangle(math.degrees(self.angle))
-            # rot = mpl.transforms.Affine2D().rotate_deg(math.degrees(self.angle))
-        else:
-            self.plot_rectangle(-math.degrees(self.angle))
-            # rot = mpl.transforms.Affine2D().rotate_deg(-math.degrees(self.angle))
-        # t = trans #+ rot
-        # r_rectangle.set_transform(t)
-
-        # plt.gca().add_patch(r_rectangle)
+        # # r_rectangle = patches.Rectangle((self.r_center[0]-self.r_radius/2, self.r_center[1]-self.r_radius/2), self.r_radius, self.r_radius, fill=None, alpha=1)
+        #
+        # # trans = plt.gca().transData
+        # if self.i_center[1] > self.r_center[1]:
+        #     self.plot_rectangle(math.degrees(self.angle))
+        #     # rot = mpl.transforms.Affine2D().rotate_deg(math.degrees(self.angle))
+        # else:
+        #     self.plot_rectangle(-math.degrees(self.angle))
+        #     # rot = mpl.transforms.Affine2D().rotate_deg(-math.degrees(self.angle))
+        # # t = trans #+ rot
+        # # r_rectangle.set_transform(t)
+        #
         plt.gca().add_patch(i_circle)
-        # plt.gca().add_patch(r_circle)
+        plt.gca().add_patch(r_circle)
 
     def cover_amount(self, wall):
         count = 0
@@ -181,7 +177,7 @@ class Candidate:
         start = time.time()
         IR = []
         id = 0
-        limit = 0.2
+        limit = 0.3
         count = 1
         x_interval = generate_interval(self.wall.xpoints, count)
         y_interval = generate_interval(self.wall.ypoints, count)
@@ -189,7 +185,7 @@ class Candidate:
         #     for j in np.arange(y_interval[i] - 2, y_interval[i] - limit, 0.05):
         #         generated_circle = Iidgeback(id, round(x_interval[i], 3), round(j, 3), self.wall)
         for i in range(len(y_interval)):
-            for j in np.arange(x_interval[i] - 2, x_interval[i] - limit, 0.05):
+            for j in np.arange(x_interval[i] - 2, x_interval[i] - limit, 0.038):
                 generated_circle = Iidgeback(id, round(j, 3), round(y_interval[i], 3), self.wall)
                 if generated_circle.can_be_generated(self.wall):
                     IR.append(generated_circle)

@@ -61,6 +61,7 @@ class DrawingInput {
     void readDrawingFile ();
     void readDemoFile ();
     void saveDemoFile ();
+    void saveFile(int range_num);
     void removeLongLine ();
     int detectRange(geometry_msgs::Pose p);
     double getDist(geometry_msgs::Pose p1, geometry_msgs::Pose p2);

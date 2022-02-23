@@ -109,7 +109,7 @@ void DrawingInput::removeLongLine() {
       geometry_msgs::Pose p2 = this->strokes[i][j];
       double dist = this->getDist(p1, p2);
       if (dist > 0.03) { // 3cm
-        if (stroke.size() > 3)
+        if (stroke.size() > 2)
           new_strokes.push_back(stroke);
         Stroke().swap(stroke);
         stroke.push_back(p2);
@@ -160,7 +160,7 @@ void DrawingInput::splitByRange () {
         stroke.push_back (contact);
 
         // only if stroke size is bigger than 5 points
-        if (stroke.size() > 5) {
+        if (stroke.size() > 2) {
           strokes_by_range[range_index_prev].push_back(stroke);
         }
         Stroke().swap(stroke);
@@ -172,6 +172,7 @@ void DrawingInput::splitByRange () {
       }
     }
     strokes_by_range[range_index].push_back(stroke);
+    Stroke().swap(stroke);
   }
 
   this->strokes_by_range = strokes_by_range;
@@ -311,7 +312,7 @@ void DrawingInput::readDrawingFileArb(){
 
       tempSplit = split(line, ' ');
       y = (-stod(tempSplit[0])+0.5) * this->ratio * this->target_size;
-      z = (-stod(tempSplit[1])+0.5) * this->target_size + this->init_drawing_pose.position.z;
+      z = (-stod(tempSplit[1])+0.5) * this->target_size + this->init_drawing_pose.position.z + 0.1;
       pt.push_back(y); pt.push_back(z);
 
       tie(x, orientation) = getXAndQuaternion(pt);
@@ -327,6 +328,23 @@ void DrawingInput::readDrawingFileArb(){
     }
   }
   txt.close();
+}
+
+void DrawingInput::saveFile(int range_num){
+  std::ofstream outfile(ros::package::getPath("large_scale_drawing") + "/data/demo/" + this->drawing_file_name + this->wall_file_name + "_" + this->color + "_demo_.txt");
+
+  // first line indicates the target drawing size
+  outfile << std::to_string(this->size[0]) << " " << std::to_string(this->size[1]) << "\n";
+  for (int i = 0; i < this->strokes_by_range[range_num].size(); i++) {
+    for (int j = 0; j < this->strokes_by_range[range_num][i].size(); j++) {
+      geometry_msgs::Pose drawing_pose = this->strokes_by_range[range_num][i][j];
+      outfile << std::to_string(drawing_pose.position.x) << " " << std::to_string(drawing_pose.position.y) << " " << std::to_string(drawing_pose.position.z) << " "
+              << std::to_string(drawing_pose.orientation.x) << " " << std::to_string(drawing_pose.orientation.y) << " "
+              << std::to_string(drawing_pose.orientation.z) << " " << std::to_string(drawing_pose.orientation.w) << "\n";
+    }
+    outfile << "End\n"; // End of stroke
+  }
+  outfile.close();
 }
 
 void DrawingInput::saveDemoFile(){
@@ -494,12 +512,16 @@ void DrawingInput::splitByRangeArb(const std_msgs::Float64MultiArray &ri_ranges)
   // detect which range the drawing coordinate is in
   int range_index_prev, range_index;
   std::cout << "Divide strokes to Range\n";
+  for (int i = 0; i < this->ranges.size(); i++){
+    std::cout << this->ranges[i][0] << ", " << this->ranges[i][1] << std::endl;
+  }
   
-  for (int i = 0; i < this->strokes.size(); i++) {
+  for (int i = 0; i < this->strokes.size(); i++) {  //strokes
     Stroke stroke;
     range_index_prev = this->detectRange(this->strokes[i][0]);
+    stroke.push_back(this->strokes[i][0]);
 
-    for (int j = 1; j < this->strokes[i].size(); j++) {
+    for (int j = 1; j < this->strokes[i].size(); j++) {  //points
       range_index = this->detectRange(strokes[i][j]);
 
       if (range_index_prev != range_index) { // split stroke
@@ -511,7 +533,7 @@ void DrawingInput::splitByRangeArb(const std_msgs::Float64MultiArray &ri_ranges)
         stroke.push_back (contact);
 
         // only if stroke size is bigger than 5 points
-        if (stroke.size() > 5) {
+        if (stroke.size() > 2) {
           strokes_by_range[range_index_prev].push_back(stroke);
         }
         Stroke().swap(stroke);
@@ -522,7 +544,10 @@ void DrawingInput::splitByRangeArb(const std_msgs::Float64MultiArray &ri_ranges)
         stroke.push_back(this->strokes[i][j]);
       }
     }
-    strokes_by_range[range_index].push_back(stroke);
+    if (stroke.size() > 2) {
+      strokes_by_range[range_index].push_back(stroke);
+    }
+    Stroke().swap(stroke);
   }
 
   this->strokes_by_range = strokes_by_range;

@@ -99,6 +99,9 @@ void DrawingMoveit::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strok
 //    this->color.x = 50.0/255.0; this->color.y = 42.0/255.0; this->color.z = 33.0/255.0;
     this->color.x = 0.0; this->color.y = 0.0; this->color.z = 0.0;   // black (0, 0, 0)
   }
+  }else if(drawing_strokes.color == 'r'){
+    this->color.x = 0.86; this->color.y = 0.07; this->color.z = 0.23;   // black (0, 0, 0)
+  }
 
 //  this->addScene(drawing_coor.strokes_by_range.size() - range_num);
 
@@ -112,10 +115,15 @@ void DrawingMoveit::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strok
   double fraction = 0.0;
   this->drawing_color_pub.publish(this->color);
   for (auto stroke : drawing_strokes.strokes_by_range[range_num]) {
+//    stroke = drawing_strokes.strokes_by_range[range_num][204];
+//    j = 204;
     command_cartesian_position.pose = stroke[0];
     command_cartesian_position.pose.position.x -= this->backward;
 
     // move to ready position
+//    this->move_group->setPoseTarget(command_cartesian_position.pose);
+//    bool success = (this->move_group->plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+//    this->move_group->execute(my_plan);
     linear_path.push_back(command_cartesian_position.pose);
     fraction = this->move_group->computeCartesianPath(linear_path, this->eef_step, this->jump_threshold, trajectory);
     my_plan.trajectory_ = trajectory;
