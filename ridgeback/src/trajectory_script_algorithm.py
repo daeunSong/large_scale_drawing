@@ -302,23 +302,23 @@ def plot_wall_draw(wall, size=0.4):
     x_wall = list(np.array(wall).T[0])
     y_wall = list(np.array(wall).T[1])
     z_wall = list(np.array(wall).T[2])
-
-    if len([i for i in x_wall[:10] if i==0]) > 3:
-        z_wall = [z for z in z_wall]
-        # plt.scatter(y_wall, z_wall, c='indigo', s=size, marker=marker_shape)
-        print('zero: x')
-        return y_wall, z_wall
-    elif len([i for i in y_wall[:10] if i==0]) > 3:
-        z_wall = [z for z in z_wall]
-        # plt.scatter(x_wall, z_wall, c='indigo', s=size, marker=marker_shape)
-        print('zero: y')
-        return x_wall, z_wall
-    elif len([i for i in z_wall[:10] if i==0]) > 3:
-        y_wall = [y for y in y_wall]
-        # plt.scatter(x_wall, y_wall, c='indigo', s=size, marker=marker_shape)
-        print('zero: z')
-        return x_wall, y_wall
-    print('done')
+    #
+    # if len([i for i in x_wall[:10] if i==0]) > 3:
+    #     z_wall = [z for z in z_wall]
+    #     # plt.scatter(y_wall, z_wall, c='indigo', s=size, marker=marker_shape)
+    #     print('zero: x')
+    #     return y_wall, z_wall
+    # elif len([i for i in y_wall[:10] if i==0]) > 3:
+    #     z_wall = [z for z in z_wall]
+    #     # plt.scatter(x_wall, z_wall, c='indigo', s=size, marker=marker_shape)
+    #     print('zero: y')
+    #     return x_wall, z_wall
+    # elif len([i for i in z_wall[:10] if i==0]) > 3:
+    y_wall = [y for y in y_wall]
+    # plt.scatter(x_wall, y_wall, c='indigo', s=size, marker=marker_shape)
+    print('zero: z')
+    return x_wall, y_wall
+    # print('done')
 
 def to_gazebo_cmd_format(steps):
     # sort path +y to -y
@@ -351,7 +351,7 @@ def to_iiwa_range(min_y_list, max_y_list):
     # print(to_iiwa)
     return to_iiwa
 
-def run_algorithm(file_name = 'bee_hive_three'):
+def run_algorithm(file_name = 'curve'):
     
     input_wall = open_wall_file(file_name)
     # print('Opened file {file_name}')
@@ -377,7 +377,7 @@ def run_algorithm(file_name = 'bee_hive_three'):
     print(path_x)
     print(path_y)
 
-    plt.plot(x, y, color="grey")
+    # plt.plot(x, y, color="grey")
     plt.gca().set_aspect('equal', adjustable='box')
     plt.xticks(rotation=-90)
     plt.yticks(rotation=-90)
@@ -386,4 +386,6 @@ def run_algorithm(file_name = 'bee_hive_three'):
     return iiwa_range_list, path_x, path_y, path_angle
 
 if __name__ == "__main__":
-    run_algorithm()
+    # run_algorithm('curve') #0.023
+    # run_algorithm('circular') #0.03
+    run_algorithm('bee_hive_three') #0.038
