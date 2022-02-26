@@ -61,13 +61,13 @@ void DrawingManager::publishState(std::string state){
 void DrawingManager::visualizeStrokes(std::vector<Stroke> &strokes){
   int id = 0;
   for (int i = 0; i < strokes.size(); i++) { // storkes
+    marker.header.stamp = ros::Time::now();
+    marker.id = id; id++;
     for (int j = 0; j < strokes[i].size(); j++) { // points
-      marker.header.stamp = ros::Time::now();
-      marker.id = id; id++;
       marker.points.push_back(strokes[i][j].position);
     }
     marker_pub.publish(marker);
-    marker.points.erase(marker.points.begin());
+    marker.points.clear();
   }
   ros::Duration(1.0).sleep();
 }

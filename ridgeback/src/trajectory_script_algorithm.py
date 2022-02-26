@@ -3,13 +3,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 class Iidgeback:
-    def __init__(self, id, rx, ry, wall, radius=0.622):
+    def __init__(self, id, rx, ry, wall, radius=0.6):
         self.id = id
         self.r_center = [rx, ry]
         self.i_center = [rx, ry]
         self.r_radius = radius
-        self.i_radius = 0.3
-        self.ir_dist = 0.7
+        self.i_radius = 0.4
+        self.ir_dist = 0.6
         self.cover_wall_amount = 0
         self.cover_point = []
         self.min_x = 0
@@ -142,7 +142,7 @@ class Candidate:
         start = time.time()
         IR = []
         id = 0
-        limit = 0.2
+        limit = 0.3
         count = 1
         x_interval = generate_interval(self.wall.xpoints, count)
         y_interval = generate_interval(self.wall.ypoints, count)
@@ -150,7 +150,7 @@ class Candidate:
         #     for j in np.arange(y_interval[i] - 2, y_interval[i] - limit, 0.05):
         #         generated_circle = Iidgeback(id, round(x_interval[i], 3), round(j, 3), self.wall)
         for i in range(len(y_interval)):
-            for j in np.arange(x_interval[i] - 2, x_interval[i] - limit, 0.05):
+            for j in np.arange(x_interval[i] - 2, x_interval[i] - limit, 0.038):
                 generated_circle = Iidgeback(id, round(j, 3), round(y_interval[i], 3), self.wall)
                 if generated_circle.can_be_generated(self.wall):
                     IR.append(generated_circle)
