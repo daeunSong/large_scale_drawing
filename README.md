@@ -56,9 +56,14 @@ roslaunch ridgeback_iiwa_gazebo ridgeback_iiwa_gazebo.launch world_name:=empty
 roslaunch large_scale_drawing prep_drawing_moveit.launch
 ```
 
-3. Run robot drawing
+3. Run robot drawing manager
 ```sh
 roslaunch large_scale_drawing drawing_manager.launch
+```
+
+4. After few seconds run the Ridgeback node
+```sh
+rosrun large_scale_drawing ridgeback.py
 ```
 
 To change the drawing input, change the name of the configuration file in [here](https://github.com/daeunSong/large_scale_drawing/blob/31b85f34acbd624ab041da2da8223dcf6439c6a2/iiwa/launch/prep_drawing_moveit.launch#L8). Please refer to the details of the **config file** in [here](https://github.com/daeunSong/large_scale_drawing/tree/debug/data/config) and the **input drawing** file in [here](https://github.com/daeunSong/large_scale_drawing/tree/debug/data/input).
