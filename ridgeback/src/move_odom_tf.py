@@ -7,11 +7,19 @@ from geometry_msgs.msg import Point
 import numpy as np
 import math
 
+import time
+from std_msgs.msg import String
+
+iiwa_done = 0
+
 class MoveOdom (object):
     def __init__(self):
         """Initialize an object of the MoveOdom class."""
+        # state publisher
+        self.ir_pub = rospy.Publisher('/iiwa_ridgeback_communicaiton/ridgeback', String, queue_size=1)
+        
         # Target direction and distance in 2D referenced to CURRENT postition
-        self.linear_speed = 0.01 # 1 m/s
+        self.linear_speed = 0.01 #0.01 # 1 m/s
         self.direction = np.array([0, -1]) # (0, -1) is moving left
         self.target_dist = 0.45 # in meter
         self.target_position = self.direction * self.target_dist
@@ -27,7 +35,8 @@ class MoveOdom (object):
         # Create a publisher that moves the robot
         self.move_pub = rospy.Publisher('/cmd_vel', Twist, queue_size="1")
         # create a subscriber for getting new Odometry messages
-        rospy.Subscriber("/odometry/filtered", Odometry, self.odom_callback)
+        rospy.Subscriber('/odometry/filtered', Odometry, self.odom_callback)
+        rospy.Subscriber('/iiwa_ridgeback_communicaiton/iiwa', String, self.get_communication)
 
     def get_init_position(self):
         """Get the initial position of the robot."""
@@ -52,7 +61,8 @@ class MoveOdom (object):
         # wait for a message from the odometry topic and store it in data_odom when available
         while data_odom is None:
             try:
-                data_odom = rospy.wait_for_message("/odometry/filtered", Odometry, timeout=1)
+                data_odom = rospy.wait_for_message('/odometry/filtered', Odometry, timeout=1)
+                print("odom acheived")
                 ### real robot working code
                 # data_odom = rospy.wait_for_message("/ridgeback_velocity_controller/odom", Odometry, timeout=1)
             except:
@@ -65,23 +75,34 @@ class MoveOdom (object):
         self._current_position.z = data_odom.pose.pose.position.z
         self.target_position += np.array([data_odom.pose.pose.position.x, data_odom.pose.pose.position.y])
 
+    def get_communication(self, msg):
+        global iiwa_done
+        iiwa_done = int(msg.data)
+        print("iiwa said: ", iiwa_done)
+    
     def odom_callback(self, msg):
         """Callback function that processes messages from the subscriber."""
+        global iiwa_done
+
         # get the distance moved from the message
         new_position = msg.pose.pose.position
 
         # If distance is less than the target, continue moving the robot
         # Otherwise, stop it (by pubishing `0`)
         dist = self.calculate_distance(self.target_position, new_position)
-        if (not self.reached):
+        if(iiwa_done):
             if dist > 0.001:
                 self.move.linear.x = self.linear_speed * self.direction[0]
                 self.move.linear.y = self.linear_speed * self.direction[1]
 
             if dist < 0.001:
+                print("REACHED!!")
                 self.move.linear.x = 0
                 self.move.linear.y = 0
                 self.reached = True
+                iiwa_done = 0
+                self.ir_pub.publish("1")
+                self.target_position += self.direction * self.target_dist # reset target place
 
         self.move_pub.publish(self.move)
 
@@ -101,3 +122,4 @@ if __name__ == '__main__':
     odom_obj = MoveOdom()
     # Keep the program running
     rospy.spin()
+

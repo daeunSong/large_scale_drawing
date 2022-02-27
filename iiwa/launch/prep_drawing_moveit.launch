@@ -1,0 +1,31 @@
+<launch>
+  <!-- Arguments -->
+  <arg name="open_rviz" default="true"/>
+  <arg name="config" default="drawing_markers"/>
+  <arg name="scan_topic" default="front/scan" />
+
+  <!-- Parameters from the file -->
+  <rosparam file="$(find large_scale_drawing)/data/config/bee_hive_ewha.config" />
+
+  <!-- ridgeback_move -->
+  <node name="odom_publisher" pkg="large_scale_drawing" type="odom_publisher.py" respawn="false" output="screen"/>
+  <!--node name="move_odom_tf" pkg="large_scale_drawing" type="move_odom_tf.py" respawn="false" output="screen"/-->
+
+  <!-- iiwa line -->
+  <node name="marker_publisher" pkg="large_scale_drawing" type="marker_publisher" respawn="false" output="screen" />
+
+  <!-- Run MoveIt! -->
+  <include file="$(find ridgeback_iiwa_moveit)/launch/move_group.launch" />
+
+  <!--- odom -->
+  <include file="$(find ridgeback_navigation)/launch/odom_navigation_demo.launch" />
+
+  <!-- rviz -->
+  <group if="$(arg open_rviz)">
+    <include file="$(find ridgeback_iiwa_viz)/launch/view_robot.launch" >
+      <arg name="config" value="$(arg config)" />
+    </include>
+  </group>
+
+</launch>
+
