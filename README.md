@@ -1,5 +1,8 @@
 # large-scale-drawing
-Large-scale robotic drawing
+
+*Tested on **Ubuntu 18.04** with **ROS Melodic**.*
+
+<img src="./doc/img/demo.gif" width="600">
 
 ## Build and Compile
 
@@ -8,7 +11,7 @@ Large-scale robotic drawing
 mkdir ros_ws && cd ros_ws && mkdir src
 catkin_init_workspace
 cd src
-git clone -b debug https://github.com/daeunSong/large_scale_drawing.git
+git clone https://github.com/daeunSong/large_scale_drawing.git
 ```
 
 2. Clone **iiwa** and **ridgeback** related repositories:
@@ -58,5 +61,5 @@ roslaunch large_scale_drawing prep_drawing_moveit.launch
 roslaunch large_scale_drawing drawing_manager.launch
 ```
 
-To change the drawing input, change the name of the configuration file in [here](https://github.com/daeunSong/large_scale_drawing/blob/31b85f34acbd624ab041da2da8223dcf6439c6a2/iiwa/launch/prep_drawing_moveit.launch#L8). Please refer to the details of the config file in [here](https://github.com/daeunSong/large_scale_drawing/tree/debug/data/config) and the input darwing file in [here](https://github.com/daeunSong/large_scale_drawing/tree/debug/data/input).
+To change the drawing input, change the name of the configuration file in [here](https://github.com/daeunSong/large_scale_drawing/blob/31b85f34acbd624ab041da2da8223dcf6439c6a2/iiwa/launch/prep_drawing_moveit.launch#L8). Please refer to the details of the **config file** in [here](https://github.com/daeunSong/large_scale_drawing/tree/debug/data/config) and the **input drawing** file in [here](https://github.com/daeunSong/large_scale_drawing/tree/debug/data/input).
 
