@@ -47,7 +47,7 @@ class DrawingManager {
     std::vector<double> wall_pose;
     std::vector<std::string> colors;
 
-    void visualizeStrokes(std::vector<Stroke> &strokes);
+    void visualizeStrokes(std::vector<Stroke> &strokes, char color);
     void publishState(std::string state);
 
   private:

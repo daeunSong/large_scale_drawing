@@ -183,7 +183,8 @@ int main( int argc, char** argv ) {
   while (ros::ok()) {
     if (!init) {
       ros::Duration(10.0).sleep();
-      markerPublisher.initWall();
+      for (int i = 0; i < 10; i ++)
+        markerPublisher.initWall();
       init = true;
       ros::Duration(1.0).sleep();
     }
