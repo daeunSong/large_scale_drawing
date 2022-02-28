@@ -50,6 +50,8 @@ source devel/setup.bash
 ```sh
 roslaunch ridgeback_iiwa_gazebo ridgeback_iiwa_gazebo.launch world_name:=empty
 ```
+If you change the `pyshics/real time update rate` value to 0, the simulation will run as fast as it can.
+
 
 2. Run moveIt! and rviz visualization related nodes
 ```sh
