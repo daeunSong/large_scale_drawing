@@ -67,7 +67,9 @@ void DrawingManager::visualizeStrokes(std::vector<Stroke> &strokes, char color){
     marker.color.r = 1.0; marker.color.g = 0.0; marker.color.b = 1.0;   // magenta (255, 0, 255)
   }else if(color == 'y'){
     marker.color.r = 1.0; marker.color.g = 1.0; marker.color.b = 0.0;   // yellow (255, 255, 0)
-  }else if(color == 'k'){
+  }else if(color == 'r'){
+    marker.color.r = 1.0; marker.color.g = 0.0; marker.color.b = 0.0;   // black (0, 0, 0)
+  }else{ // black
     marker.color.r = 0.0; marker.color.g = 0.0; marker.color.b = 0.0;   // black (0, 0, 0)
   }
 
@@ -78,9 +80,9 @@ void DrawingManager::visualizeStrokes(std::vector<Stroke> &strokes, char color){
       marker.points.push_back(strokes[i][j].position);
     }
     marker_pub.publish(marker);
+    ros::Duration(0.05).sleep();
     marker.points.clear();
   }
-  ros::Duration(1.0).sleep();
 }
 
 int main(int argc, char **argv){
@@ -100,7 +102,7 @@ int main(int argc, char **argv){
 
   //*********** init drawing pose
   dm.init_drawing_pose = iiwa.getCurrentPose().pose;
-  dm.init_drawing_pose.position.x += 0.03;   // 3cm depper
+//  dm.init_drawing_pose.position.x += 0.03;   // 3cm depper
   dm.init_drawing_pose.position.z += 0.05;  // move up
 
   //*********** Init Drawing

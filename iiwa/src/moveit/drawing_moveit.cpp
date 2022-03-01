@@ -92,7 +92,9 @@ void DrawingMoveit::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strok
     this->color.x = 1.0; this->color.y = 0.0; this->color.z = 1.0;   // magenta (255, 0, 255)
   }else if(drawing_strokes.color == 'y'){
     this->color.x = 1.0; this->color.y = 1.0; this->color.z = 0.0;   // yellow (255, 255, 0)
-  }else if(drawing_strokes.color == 'k'){
+  }else if(drawing_strokes.color == 'r'){
+    this->color.x = 1.0; this->color.y = 0.0; this->color.z = 0.0;   // black (0, 0, 0)
+  }else{ // black
     this->color.x = 0.0; this->color.y = 0.0; this->color.z = 0.0;   // black (0, 0, 0)
   }
 
