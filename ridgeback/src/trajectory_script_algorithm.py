@@ -173,7 +173,7 @@ class Candidate:
         start = time.time()
         IR = []
         id = 0
-        limit = 0.2
+        limit = 0.3
         count = 1
         x_interval = generate_interval(self.wall.xpoints, count)
         y_interval = generate_interval(self.wall.ypoints, count)
@@ -181,7 +181,7 @@ class Candidate:
         #     for j in np.arange(y_interval[i] - 2, y_interval[i] - limit, 0.05):
         #         generated_circle = Iidgeback(id, round(x_interval[i], 3), round(j, 3), self.wall)
         for i in range(len(y_interval)):
-            for j in np.arange(x_interval[i] - 2, x_interval[i] - limit, 0.05):
+            for j in np.arange(x_interval[i] - 2, x_interval[i] - limit, 0.038):
                 generated_circle = Iidgeback(id, round(j, 3), round(y_interval[i], 3), self.wall)
                 if generated_circle.can_be_generated(self.wall):
                     IR.append(generated_circle)
