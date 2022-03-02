@@ -17,7 +17,7 @@ git clone https://github.com/daeunSong/large_scale_drawing.git
 2. Clone **iiwa** and **ridgeback** related repositories:
 ```sh
 git clone -b glab/drawing https://github.com/daeunSong/iiwa_stack.git
-git clone -b glab/integration git clone https://github.com/ridgeback/ridgeback.git
+git clone -b glab/integration https://github.com/daeunSong/ridgeback.git
 git clone https://github.com/ridgeback/ridgeback_desktop.git
 git clone https://github.com/ridgeback/ridgeback_simulator.git
 git clone https://github.com/daeunSong/ridgeback_iiwa_integration.git
