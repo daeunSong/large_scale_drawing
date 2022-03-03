@@ -29,19 +29,21 @@ cd ..
 rosdep install --from-paths src --ignore-src -r -y
 ```
 
-4. Add a following line in ~/.bashrc:
-
-`export RIDGEBACK_URDF_EXTRAS=$(catkin_find ridgeback_iiwa_description urdf/ridgeback_iiwa_robot.urdf.xacro --first-only)`
-
-
-5. Build the workspace:
+4. Build the workspace:
 ```sh
 catkin build
 ```
 
-6. Source the workspace:
+5. Add following lines in ~/.bashrc:
+
+`source ~/ros_ws/devel/setup.bash`
+
+`export RIDGEBACK_URDF_EXTRAS=$(catkin_find ridgeback_iiwa_description urdf/ridgeback_iiwa_robot.urdf.xacro --first-only)`
+
+6. source the bash file:
+
 ```sh
-source devel/setup.bash
+source ~/.bashrc
 ```
 
 ## Demo
