@@ -29,6 +29,11 @@ class Ridgeback:
         self.reached = False
         self.i = 0
 
+        #pose
+        self.position_x = None
+        self.position_y = None
+        self.orientation_q = None
+
         #config
         self.wall_file_name = rospy.get_param('/wall_file_name')
         self.wall_pose = rospy.get_param('/wall_pose')
@@ -80,6 +85,9 @@ class Ridgeback:
         self.rad = math.radians(angle)
 
     def fixed_goal(self, goal_x, goal_y):
+        while self.position_x == None:
+            print("wait for odom callback ..")
+
         print('Executing ridgeback')
         cmd = Twist()
         print(f'MOVING to the goal #{goal_x}, #{goal_y}')
