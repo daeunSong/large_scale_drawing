@@ -31,12 +31,15 @@ Change the values in line [109](https://github.com/daeunSong/large_scale_drawing
 
 Change the values to `move=False, debug=False`, if you have done all the calibrations and changed the values. Robot will not run, just publish the messgaes.
 
-4. Launch the tf publisher
-```shell
-rosrun large_scale_drawing tf_publisher.py
-```
+[//]: # (4. Launch the tf publisher)
 
-5. Launch the drawing-related launch file. Change the `open_rviz` value as your preferation to launch rviz
+[//]: # (```shell)
+
+[//]: # (rosrun large_scale_drawing tf_publisher.py)
+
+[//]: # (```)
+
+4. Launch the preparation launcher for the drawing. Change the `open_rviz` value as your preferation to launch rviz
 ```shell
 roslaunch large_scale_drawing prep_drawing_tracker.launch oepn_rviz:=true
 ```
