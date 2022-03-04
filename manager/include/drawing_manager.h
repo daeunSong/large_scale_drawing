@@ -4,8 +4,9 @@
 #include <ros/package.h>
 
 #include <geometry_msgs/Pose.h>
-#include <std_msgs/String.h>
+#include <std_msgs/Int32.h>
 #include <std_msgs/Float64MultiArray.h>
+#include <nav_msgs/Odometry.h>
 #include "boost/shared_ptr.hpp"
 #include <visualization_msgs/Marker.h>
 
@@ -24,8 +25,8 @@ class DrawingManager {
     std_msgs::Float64MultiArray ranges;
     int range_num;
 
-    std_msgs::String iiwa_state;
-    std::string ridgeback_state;
+    std_msgs::Int32 iiwa_state;
+    int ridgeback_state;
 
     visualization_msgs::Marker marker;
     visualization_msgs::Marker target_range_marker;
@@ -45,14 +46,18 @@ class DrawingManager {
     // problem
     std::string wall_file_name, drawing_file_name;
     std::vector<double> wall_pose;
+    geometry_msgs::Pose wall_;
+    geometry_msgs::Pose iiwa_;
     std::vector<std::string> colors;
 
     void visualizeStrokes(std::vector<Stroke> &strokes);
-    void publishState(std::string state);
+    void publishState(int state);
 
   private:
     ros::NodeHandle nh_;
     ros::Subscriber ir_sub_;
+    ros::Subscriber iiwa_pose_sub_;
+    ros::Subscriber wall_sub_;
 
     void initSubscriber();
     void initPublisher();
@@ -61,9 +66,11 @@ class DrawingManager {
 
     // MoveGroup
     const std::string PLANNING_GROUP = "manipulator";
-    const std::string EE_LINK = "iiwa_link_ee";
+    const std::string EE_LINK = "tool_link_ee";
     const std::string PLANNER_ID = "geometric::RRTConnect";
     const std::string REFERENCE_FRAME = "base_link";
 
-    void stateCallback(const std_msgs::String::ConstPtr& msg);
+    void stateCallback(const std_msgs::Int32::ConstPtr& msg);
+    void wallCallback(const geometry_msgs::Pose::ConstPtr& msg);
+    void iiwaCallback(const geometry_msgs::Pose::ConstPtr& msg);
 };

@@ -1,11 +1,14 @@
 <launch>
   <!-- Arguments -->
-  <arg name="open_rviz" default="false"/>
+  <arg name="open_rviz" default="true"/>
   <arg name="config" default="drawing_tracker"/>
   <arg name="scan_topic" default="front/scan" />
 
   <!-- Parameters from the file -->
-  <rosparam file="$(find large_scale_drawing)/data/config/bee_hive_ewha.config" />
+  <rosparam file="$(find large_scale_drawing)/data/config/bee_hive_paris.config" />
+
+  <!-- tf publisher -->
+  <node name="tf_publisher" pkg="large_scale_drawing" type="tf_publisher.py" respawn="false" output="screen" />
 
   <!-- iiwa line -->
   <node name="marker_publisher" pkg="large_scale_drawing" type="marker_publisher" respawn="false" output="screen" />

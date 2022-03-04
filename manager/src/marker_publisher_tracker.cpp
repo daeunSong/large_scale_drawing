@@ -120,8 +120,8 @@ void MarkerPublisher::trajCallback(const geometry_msgs::PoseArray::ConstPtr& msg
 
 
 // Callback function to get the wall pose
-void MarkerPublisher::wallCallback(const nav_msgs::Odometry::ConstPtr& msg){
-  wall_ = msg->pose.pose;
+void MarkerPublisher::wallCallback(const geometry_msgs::Pose::ConstPtr& msg){
+  wall_ = *msg;
   if (!init){
     initWall();
     init = true;
@@ -191,6 +191,7 @@ int main( int argc, char** argv ) {
     id++;
     ros::spinOnce();
     loop_rate.sleep();
+    markerPublisher.initWall();
   }
 
   return 0;

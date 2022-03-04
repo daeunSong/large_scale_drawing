@@ -25,7 +25,7 @@ class DrawingInput {
   public:
     DrawingInput(const std::string &, const char &, const geometry_msgs::Pose &);
     DrawingInput(const std::string &, const std::string &,
-                                  const char &, const geometry_msgs::Pose &, const std::vector<double>);
+                                  const char &, const geometry_msgs::Pose &, const geometry_msgs::Pose &);
 
     std::vector<Stroke> strokes;
     std::vector<std::vector<Stroke>> strokes_by_range;
@@ -47,6 +47,7 @@ class DrawingInput {
 
     // regarding wall file and arbitrary drawing
     std::string wall_file_name;
+    geometry_msgs::Pose wall_;
     std::vector<double> wall_pose; // x, y, z, x, y, z, w
     std::vector<double> wall_size; // width,height
     KDTree kdtree;

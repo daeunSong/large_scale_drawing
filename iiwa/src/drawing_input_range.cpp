@@ -12,10 +12,10 @@ DrawingInput::DrawingInput(const std::string &drawing_file_name,
 
 DrawingInput::DrawingInput(const std::string &wall_file_name_, const std::string &drawing_file_name,
                                   const char &color, const geometry_msgs::Pose &init_drawing_pose,
-                                  const std::vector<double> wall_pose_) {
+                                  const geometry_msgs::Pose &wall_pose_) {
   setFileName(drawing_file_name, color);
   this->wall_file_name = wall_file_name_;
-  this->wall_pose = wall_pose_;
+  this->wall_ = wall_pose_;
   this->init_drawing_pose = init_drawing_pose;
 
   // try open demo file

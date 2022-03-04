@@ -61,5 +61,5 @@ class MarkerPublisher {
     void colorCallback(const geometry_msgs::Point::ConstPtr& msg);
     void trajCallback(const geometry_msgs::PoseArray::ConstPtr& msg);
     void coordCallback(const geometry_msgs::Pose::ConstPtr& msg);
-    void wallCallback(const nav_msgs::Odometry::ConstPtr& msg);
+    void wallCallback(const geometry_msgs::Pose::ConstPtr& msg);
 };

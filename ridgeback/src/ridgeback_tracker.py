@@ -14,17 +14,17 @@ from trajectory_script_algorithm import *
 class Ridgeback:
 
     def __init__(self):
-        self.iiwa_state = "0"
+        self.iiwa_state = 0
         self.ridgeback_state = 0
 
         self.publisher_pose = rospy.Publisher('/iiwa_ridgeback_communicaiton/ridgeback/pose', Pose, queue_size=10)
-        self.publisher_state = rospy.Publisher('/iiwa_ridgeback_communicaiton/ridgeback/state', String, queue_size=10)
+        self.publisher_state = rospy.Publisher('/iiwa_ridgeback_communicaiton/ridgeback/state', Int32, queue_size=10)
         self.publisher_range = rospy.Publisher('/iiwa_ridgeback_communicaiton/drawing_range', Float64MultiArray, queue_size=10)
         self.publisher_traj = rospy.Publisher('/iiwa_ridgeback_communicaiton/trajectory', PoseArray, queue_size=100)
         self.publisher_cmd_vel = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
         self.subscriber_tracker = rospy.Subscriber('/vive/ridgeback', Odometry, self.tracker_callback, queue_size=1)
-        self.subscriber_wall = rospy.Subscriber('/vive/wall', Odometry, self.wall_callback, queue_size=1)
-        self.subscriber_iiwa = rospy.Subscriber("/iiwa_ridgeback_communicaiton/iiwa/state", String, self.callback_iiwa)
+        self.subscriber_wall = rospy.Subscriber('/vive/wall', Pose, self.wall_callback, queue_size=1)
+        self.subscriber_iiwa = rospy.Subscriber("/iiwa_ridgeback_communicaiton/iiwa/state", Int32, self.iiwa_callback)
         self.subscriber_odom = rospy.Subscriber('/ridgeback_velocity_controller/odom', Odometry, self.odom_callback, queue_size=1)
 
         self.linear_speed = 0.05
@@ -49,6 +49,9 @@ class Ridgeback:
         self.odom_yaw = None
         self.odom_pose = None
 
+    def iiwa_callback(self, msg):
+        self.iiwa_state = msg.data
+
     def odom_callback(self, msg):
         """Return real robot odometry"""
         self.odom_pose = msg.pose.pose
@@ -63,26 +66,26 @@ class Ridgeback:
 
     def wall_callback(self, msg):
         """Return transformed vive tracker value"""
-        self.wall_pose = msg.pose.pose
-        wall_ori = msg.pose.pose.orientation
+        self.wall_pose = msg
+        wall_ori = msg.orientation
         qaut = np.array([wall_ori.x,wall_ori.y,wall_ori.z,wall_ori.w])
         self.wall_yaw = R.from_quat(qaut).as_euler('zyx')[0]
 
-    def iiwa_callback(self, msg):
-        self.iiwa_state = msg.data
-
-    def publish_state(self, number):
-        self.ridgeback_state = number
-        s = String()
-        s.data = str(number)
-        self.publisher_state.publish(s)
+    def publish_state(self, state):
+        self.ridgeback_state = state
+        msg = Int32()
+        msg.data = state
+        self.publisher_state.publish(msg)
 
     def publish_pose(self):
-        P = Pose()
-        P.position.x = self.pose.postion.x
-        P.position.y = self.pose.position.y
-        P.orientation.x = self.yaaw
-        self.publisher_pose.publish(P)
+        while self.pose == None :
+            print ("wait for tracker callback")
+        p = Pose()
+        p.position = Point(self.pose.position.x, self.pose.position.y, 0.0)
+        # p.position.x = self.pose.postion.x
+        # p.position.y = self.pose.position.y
+        p.orientation.x = self.yaw
+        self.publisher_pose.publish(p)
 
     def rotate(self, target_rad, debug=False):
         """Command Ridgeback to rotate to certain angle via tracker"""
@@ -113,7 +116,9 @@ class Ridgeback:
         cmd.linear.x = tools.check_speed(self.linear_speed) * direction[0]
         cmd.linear.y = tools.check_speed(self.linear_speed) * direction[1]
 
-        while iter < 1000 :
+        dist = tools.dist2d(target_position, [0,0])
+
+        while iter < dist * 100 * 1000 :
             self.publisher_cmd_vel.publish(cmd)
             iter = iter + 1
 
@@ -236,26 +241,28 @@ class Ridgeback:
 
             target_yaw = target_yaw * np.pi/180 + self.wall_yaw
 
+            # self.move_relative([-0.2,0.0])
             self.move(np.array(target_pos),target_yaw)
 
             rospy.loginfo("DONE moving")
-            self.iiwa_state = "-1"
+            self.iiwa_state = -1
             self.publish_state(0)
             rospy.sleep(2)
 
-            while self.iiwa_state != "0": # iiwa moving
-                if self.iiwa_state != "1": # iiwa waiting
+            while self.ridgeback_state == 0: # iiwa moving
+                if self.iiwa_state != 1: # iiwa waiting
                     rospy.sleep(2)
                     self.publish_pose()
                     rospy.sleep(2)
-                if self.iiwa_state == "2": # change color
+                if self.iiwa_state == 2: # change color
                     rospy.sleep(2)
-                    self.move_realtive([-0.5,0.0])
+                    self.move_relative([-0.2,0.0])
                     input("Press Enter to continue...")
                     rospy.sleep(2)
                     self.move(np.array(target_pos),target_yaw)
                     self.publish_pose()
-                    self.iiwa_state = "-1"
+                    self.iiwa_state = 1
+                    self.ridgeback_state = 1
 
         self.publish_pose()
         rospy.sleep(2)

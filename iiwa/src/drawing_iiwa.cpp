@@ -1,6 +1,14 @@
 #include "drawing_iiwa.h"
 
-DrawingIIWA::DrawingIIWA(ros::NodeHandle &nh, std::string ee_link_, std::string reference_frame){
+DrawingIIWA::DrawingIIWA(ros::NodeHandle &nh, std::string ee_link_, std::string reference_frame)
+    : jointPositionClient("/iiwa/action/move_to_joint_position", true),
+      cartesianPositionClient("/iiwa/action/MoveToCartesianPose", true),
+      splineMotionClient("/iiwa/action/move_along_spline", true)
+{
+  ROS_INFO("Waiting for action servers to start...");
+  // Wait for the action servers to start
+  jointPositionClient.waitForServer(); //will wait for infinite time
+  splineMotionClient.waitForServer();
   int state = DrawingIIWA::init(nh, ee_link_);
 
   // Move robot to the initial pose
@@ -30,30 +38,20 @@ int DrawingIIWA::init(ros::NodeHandle &nh, std::string ee_link_){
   this->iiwa_control_mode.init("iiwa");
   this->iiwa_time_destination.init("iiwa");
 
-//  // Create the action clients
-//  // Passing "true" causes the clients to spin their own threads
-//  this->jointPositionClient = actionlib::SimpleActionClient<iiwa_msgs::MoveToJointPositionAction>("/iiwa/action/move_to_joint_position", true);
-//  this->splineMotionClient = actionlib::SimpleActionClient<iiwa_msgs::MoveAlongSplineAction>("/iiwa/action/move_along_spline", true);
-
-  ROS_INFO("Waiting for action servers to start...");
-  // Wait for the action servers to start
-  this->jointPositionClient.waitForServer(); //will wait for infinite time
-  this->splineMotionClient.waitForServer();
-
   return 1;
 }
 
-int DrawingIIWA::moveInitPose(){
+int DrawingIIWA::moveInitPose( ){
   iiwa_msgs::MoveToJointPositionGoal jointPositionGoal;
   jointPositionGoal.joint_position.position.a1 =  0.00;
-  jointPositionGoal.joint_position.position.a2 =  0.435332;
+  jointPositionGoal.joint_position.position.a2 =  0.3228859; // 18.5d// 0.435332;
   jointPositionGoal.joint_position.position.a3 =  0.00;
-  jointPositionGoal.joint_position.position.a4 = -1.91986;
+    jointPositionGoal.joint_position.position.a4 = -2.05948852; // -118d // -1.91986;
   jointPositionGoal.joint_position.position.a5 =  0.00;
-  jointPositionGoal.joint_position.position.a6 = -0.785399;
+  jointPositionGoal.joint_position.position.a6 = -0.759218225;// -43.5// -0.785399;
   jointPositionGoal.joint_position.position.a7 = -0.523599;
   // Send goal to action server
-  this->jointPositionClient.sendGoal(jointPositionGoal);
+  jointPositionClient.sendGoal(jointPositionGoal);
 
   // Wait for the action to finish
   bool finished_before_timeout = jointPositionClient.waitForResult(ros::Duration(60.0));
@@ -62,7 +60,33 @@ int DrawingIIWA::moveInitPose(){
     ROS_WARN("iiwa motion timed out - exiting...");
     return 0;
   }
-  else if (!this->jointPositionClient.getResult()->success) {
+  else if (!jointPositionClient.getResult()->success) {
+    ROS_ERROR("Action execution failed - exiting...");
+    return 0;
+  }
+  return 1;
+}
+
+int DrawingIIWA::moveTransportPose(){
+  iiwa_msgs::MoveToJointPositionGoal jointPositionGoal;
+  jointPositionGoal.joint_position.position.a1 =  0.00;
+  jointPositionGoal.joint_position.position.a2 =  0.435332;
+  jointPositionGoal.joint_position.position.a3 =  0.00;
+  jointPositionGoal.joint_position.position.a4 = -1.91986;
+  jointPositionGoal.joint_position.position.a5 =  0.00;
+  jointPositionGoal.joint_position.position.a6 = 0.785398;//-0.785399;
+  jointPositionGoal.joint_position.position.a7 = -0.523599;
+  // Send goal to action server
+  jointPositionClient.sendGoal(jointPositionGoal);
+
+  // Wait for the action to finish
+  bool finished_before_timeout = jointPositionClient.waitForResult(ros::Duration(60.0));
+
+  if (!finished_before_timeout) {
+    ROS_WARN("iiwa motion timed out - exiting...");
+    return 0;
+  }
+  else if (!jointPositionClient.getResult()->success) {
     ROS_ERROR("Action execution failed - exiting...");
     return 0;
   }
@@ -199,40 +223,63 @@ void DrawingIIWA::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strokes
 
   // drawing commands related
   std_msgs::Bool ready;
+  bool finished_before_timeout;
   int j = 0;
 
   iiwa_msgs::CartesianPose command_cartesian_position;
   command_cartesian_position = this->init_pose;
   iiwa_msgs::MoveAlongSplineGoal splineMotion;
+  int num_strokes = drawing_strokes.strokes_by_range[range_num].size();
 
   for (auto stroke : drawing_strokes.strokes_by_range[range_num]) {
-    this->iiwa_control_mode.setPositionControlMode();
-    command_cartesian_position.poseStamped.pose = stroke[0];
-    command_cartesian_position.poseStamped.pose.position.x -= BACKWARD/2;
+//    iiwa_control_mode.setPositionControlMode();
+//    command_cartesian_position.poseStamped.pose = stroke[0];
+//    command_cartesian_position.poseStamped.pose.position.x -= BACKWARD/2;
+//    setEndpointFrame(nh, "tool_ready_link_ee");
 
     // move to ready position in position control
-    this->iiwa_pose_command.setPose(command_cartesian_position.poseStamped);
-    this->sleepForMotion(this->iiwa_time_destination, 3.0);
-    ros::Duration(1.0).sleep();
+//    iiwa_pose_command.setPose(command_cartesian_position.poseStamped);
+//    ros::Duration(0.5).sleep();
+//    sleepForMotion(iiwa_time_destination, 5.0);
+//    ros::Duration(0.5).sleep();
+    setEndpointFrame(nh, "tool_ready_link_ee");
+    splineMotion.spline.segments.push_back(getSplineSegment(stroke[0], iiwa_msgs::SplineSegment::LIN));
+    splineMotionClient.sendGoal(splineMotion);
+//    splineMotionClient.waitForResult();
 
-    // draw
-    std::cout << "Drawing " << drawing_strokes.color << " " << range_num << "th range, " << j << "th stroke ... " << std::endl;
-
-    splineMotion.spline.segments.push_back(this->getSplineSegment(stroke[0], iiwa_msgs::SplineSegment::LIN));
-    for (int j = 1 ; j < stroke.size(); j++)
-      splineMotion.spline.segments.push_back(this->getSplineSegment(stroke[j], iiwa_msgs::SplineSegment::SPL));
-    this->splineMotionClient.sendGoal(splineMotion);
-    this->splineMotionClient.waitForResult();
+    // Wait for the action to finish
+    finished_before_timeout = splineMotionClient.waitForResult();
+    if (!finished_before_timeout) {
+      ROS_WARN("iiwa motion timed out - exiting...");
+    }
+    else if (!jointPositionClient.getResult()->success) {
+      ROS_ERROR("Action execution failed - exiting...");
+    }
     splineMotion.spline.segments.clear();
 
+//    // draw
+//    setEndpointFrame(nh, "tool_link_ee");
+    std::cout << "Drawing " << drawing_strokes.color << " " << range_num << "th range, " << j << "th stroke out of " << num_strokes << " strokes ... " << std::endl;
+//
+//    splineMotion.spline.segments.push_back(this->getSplineSegment(stroke[0], iiwa_msgs::SplineSegment::LIN));
+//    for (int j = 1 ; j < stroke.size(); j++)
+//      splineMotion.spline.segments.push_back(this->getSplineSegment(stroke[j], iiwa_msgs::SplineSegment::SPL));
+//    splineMotionClient.sendGoal(splineMotion);
+//    splineMotionClient.waitForResult();
+//    splineMotion.spline.segments.clear();
+//
     // move backward
-    this->iiwa_control_mode.setPositionControlMode();
-    command_cartesian_position.poseStamped.pose = stroke.back();
-    command_cartesian_position.poseStamped.pose.position.x -= BACKWARD;
-    this->iiwa_pose_command.setPose(command_cartesian_position.poseStamped);
-    this->sleepForMotion(this->iiwa_time_destination, 3.0);
-    ros::Duration(0.5).sleep();
+//    setEndpointFrame(nh, "tool_back_link_ee");
+//    iiwa_control_mode.setPositionControlMode();
+//    command_cartesian_position.poseStamped.pose = stroke.back();
+////    command_cartesian_position.poseStamped.pose.position.x -= BACKWARD;
+//    iiwa_pose_command.setPose(command_cartesian_position.poseStamped);
+//    ros::Duration(0.5).sleep();
+//    sleepForMotion(iiwa_time_destination, 3.0);
+//    ros::Duration(0.5).sleep();
     j++;
   }
+  moveTransportPose();
+
 }
 

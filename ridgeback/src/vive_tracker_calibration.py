@@ -27,7 +27,7 @@ class Calibration:
 
         self.publisher_cmd_vel = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
         self.publisher_tracker = rospy.Publisher('/vive/tracker', Odometry, queue_size=10)
-        self.publisher_wall = rospy.Publisher('/vive/wall', Odometry, queue_size=10)
+        self.publisher_wall = rospy.Publisher('/vive/wall_tracker', Odometry, queue_size=10)
         self.subscriber_tracker = rospy.Subscriber('/vive/LHR_'+self.tracker.tracker_name+'_pose', PoseWithCovarianceStamped, self.tracker_callback)
         self.subscriber_wall = rospy.Subscriber('/vive/LHR_'+self.wall.tracker_name+'_pose', PoseWithCovarianceStamped, self.wall_callback)
         self.subscriber_odom = rospy.Subscriber('/ridgeback_velocity_controller/odom', Odometry, self.odom_callback, queue_size=1)
@@ -106,7 +106,7 @@ class Calibration:
 
         # set current position as origin
         if move: self.tracker.origin = tools.pos2arr(self.tracker.pose.position)
-        else: self.tracker.origin = np.array([-0.55987096, -0.10827881, 0.83399117])
+        else: self.tracker.origin = np.array([-0.20449013, -1.36507463, 0.82675314])
         if debug: print(f'origin: {self.tracker.origin}')
         rospy.sleep(1)
 
@@ -122,8 +122,8 @@ class Calibration:
             rospy.sleep(1)
             p2 = tools.pos2arr(self.tracker.pose.position)
         else:
-            p1 = np.array([-0.6208719, 0.77725536, 0.83583295])
-            p2 = np.array([-0.56664193, -0.11963105, 0.83770931])
+            p1 = np.array([-0.02860211, -0.47136998, 0.82893825])
+            p2 = np.array([-0.19813925, -1.36032724, 0.82110727])
 
         self.r = np.linalg.norm(p1-p2)/2.0
         if debug: print(f'p1: {p1}, p2: {p2}')
@@ -134,7 +134,7 @@ class Calibration:
             self.move_relative([0.5,0])
             rospy.sleep(1)
             x_axis_position = tools.pos2arr(self.tracker.pose.position)
-        else: x_axis_position = np.array([-0.58983469, 0.3753503, 0.83545434])
+        else: x_axis_position = np.array([-0.09869811, -0.88421291, 0.8294127])
         if debug: print(f'x_axis_position: {x_axis_position}')
 
         self.tracker.x_axis = x_axis_position - self.tracker.origin
@@ -147,7 +147,7 @@ class Calibration:
             self.move_relative([0,0.5]) # set axis
             rospy.sleep(1)
             y_axis_position = tools.pos2arr(self.tracker.pose.position)
-        else: y_axis_position = np.array([-1.07183957, 0.35897636, 0.83577967])
+        else: y_axis_position = np.array([-0.56734687, -0.79909635, 0.83566904])
         if debug: print(f'y_axis_position: {y_axis_position}')
 
         self.tracker.y_axis = y_axis_position - x_axis_position
@@ -178,8 +178,10 @@ class Calibration:
         quaternion = tools.quat2arr(self.tracker.pose.orientation)
 
         position = position - self.tracker.origin
-        position = np.matmul(np.matmul(self.tracker.rot_M, self.tracker.rot_x.as_matrix()), position)
-        quaternion = tools.quatmul(tools.quatmul(self.tracker.rot_q, self.tracker.rot_x.as_quat()), quaternion)
+        position = np.matmul(self.tracker.rot_M, position)
+        quaternion = tools.quatmul(self.tracker.rot_q, quaternion)
+        # position = np.matmul(np.matmul(self.tracker.rot_M, self.tracker.rot_x.as_matrix()), position)
+        # quaternion = tools.quatmul(tools.quatmul(self.tracker.rot_q, self.tracker.rot_x.as_quat()), quaternion)
 
         odom_msgs = Odometry()
         odom_msgs.header.stamp = rospy.Time.now()
@@ -214,7 +216,7 @@ if __name__=='__main__':
     rospy.init_node('ridgeback_tracker')
     rate = rospy.Rate(50)
     calib = Calibration()
-    calib.tracker_calibration(move=True, debug=False)
+    calib.tracker_calibration(move=False, debug=False)
 
     while not rospy.is_shutdown():
         # publish the transformed tracker position
