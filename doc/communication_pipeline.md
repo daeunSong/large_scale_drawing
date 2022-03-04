@@ -1,6 +1,6 @@
-# :frog:Ridgeback + iiwa communication pipeline
+# Ridgeback + iiwa communication pipeline
 
-### :purple_heart:Used topics:
+### Used topics:
 
 Format: 
  
@@ -9,38 +9,18 @@ Format:
 1. /iiwa_ridgeback_communicaiton/iiwa
 2. /iiwa_ridgeback_communicaiton/ridgeback
 
-### :purple_heart:Used message
+### Used message
 
 Type:
 
-    std_msgs <String>
+    std_msgs <Int32>
 
-Content:
-```commandline
-number: instruction number
-status: 
-   start: start instruction
-   executing: doing instructions
-   done: done executing instruction
-   error: error occured during execution
-   waiting: done instruction and waiting for the other robot to send done signal
-```
+### Status
 
-For example: 
-
-    /iiwa_ridgeback_communicaiton/ridgeback
-    4 done
-meaning: 
-
-ridgeback is done doing instruction 4
-
-### :purple_heart:Pipeline
-| Ridgeback | iiwa |
-| ------------- | ------------- | 
-| 0 start | 0 waiting |
-| 0 executing | 0 waiting |
-| 0 done | 0 waiting |
-| 0 waiting | 0 start |
-| 0 waiting | 0 executing |
-| 0 waiting | 0 done |
-| 1 start | 1 waiting |
+| Robot     | Status | Meaning                                       |
+|-----------|--------|-----------------------------------------------|
+| iiwa      | 0      | Not working - waiting for Ridgeback to finish |
+|           | 1      | Working - drawing                             |
+|           | 2      | Halting to change color                       |
+| Ridgeback | 0      | Not working - waiting for iiwa to finish      |
+|           | 1      | Working - moving to the next range            |

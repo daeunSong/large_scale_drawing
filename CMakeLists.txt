@@ -6,6 +6,7 @@ project(large_scale_drawing)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   iiwa_ros
+  iiwa_msgs
   moveit_core 
   moveit_ros_planning
   moveit_ros_planning_interface

@@ -32,6 +32,8 @@
   
   <build_depend>iiwa_ros</build_depend>
   <run_depend>iiwa_ros</run_depend>
+  <build_depend>iiwa_msgs</build_depend>
+  <run_depend>iiwa_msgs</run_depend>
   
   <buildtool_depend>catkin</buildtool_depend>
   
