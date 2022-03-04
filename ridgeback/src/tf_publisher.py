@@ -10,9 +10,15 @@ class RealWorld():
     def __init__(self):
         self.translation = None
         self.rotation = None
+        self.iiwa_trans = None
+        self.iiwa_rot = None
+        self.wall_trans = None
+        self.wall_rot = None
         self.publisher_pose = rospy.Publisher('/vive/ridgeback', Odometry, queue_size=1)
+        self.publisher_iiwa = rospy.Publisher('/vive/iiwa', Pose, queue_size=1)
+        self.publisher_wall = rospy.Publisher('/vive/wall', Pose, queue_size=1)
         self.subscriber_pose = rospy.Subscriber('/vive/tracker', Odometry, self.call_back)
-        self.subscriber_wall = rospy.Subscriber('/vive/wall', Odometry, self.wall_call_back)
+        self.subscriber_wall = rospy.Subscriber('/vive/wall_tracker', Odometry, self.wall_call_back)
         self.frame_generated = False
         self.broadcaster = tf.TransformBroadcaster()
 
@@ -26,11 +32,16 @@ class RealWorld():
                         rospy.Time.now(),
                         'vive_tracker',
                         'vive_world')
-            self.broadcaster.sendTransform([msg.twist.twist.linear.x+0.05,0,0],
+            self.broadcaster.sendTransform([0.45,0,0],
                         [0,0,0,1],
                         rospy.Time.now(),
                         'vive_ridgeback',
                         'vive_tracker')
+            self.broadcaster.sendTransform([0.12,0,0],
+                        [0,0,0,1],
+                        rospy.Time.now(),
+                        'vive_iiwa',
+                        'vive_ridgeback')
 
     def wall_call_back (self, msg):
         pose_ = msg.pose.pose
@@ -40,8 +51,13 @@ class RealWorld():
             self.broadcaster.sendTransform(self.translation,
                         self.rotation,
                         rospy.Time.now(),
-                        'vive_wall',
+                        'vive_temp',
                         'vive_world')
+            self.broadcaster.sendTransform([msg.twist.twist.linear.x-0.50,0,0],
+                        [0,0,0,1],
+                        rospy.Time.now(),
+                        'vive_wall',
+                        'vive_temp')
 
 if __name__ == '__main__':
     rospy.init_node('vive_tf_publisher')
@@ -74,6 +90,8 @@ if __name__ == '__main__':
     while not rospy.is_shutdown():
         try:
             (world.translation, world.rotation) = listener.lookupTransform('vive_world', 'vive_ridgeback', rospy.Time(0))
+            (world.iiwa_trans, world.iiwa_rot) = listener.lookupTransform('vive_world', 'vive_iiwa', rospy.Time(0))
+            (world.wall_trans, world.wall_rot) = listener.lookupTransform('vive_world', 'vive_wall', rospy.Time(0))
             if world.frame_generated is False:
                 world.frame_generated = True
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
@@ -87,6 +105,7 @@ if __name__ == '__main__':
             rate.sleep()
 
         if world.frame_generated:
+            # ridgeback pose msg
             odom_msgs = Odometry()
             odom_msgs.header.stamp = rospy.Time.now()
             odom_msgs.header.frame_id = "vive_world"
@@ -97,3 +116,13 @@ if __name__ == '__main__':
             odom_msgs.twist.covariance = tuple(p_cov.ravel().tolist())
 
             world.publisher_pose.publish(odom_msgs)
+
+            # iiwa pose msg
+            pose_msgs = Pose(Point(world.iiwa_trans[0], world.iiwa_trans[1], world.iiwa_trans[2]),
+                                       Quaternion(world.iiwa_rot[0], world.iiwa_rot[1], world.iiwa_rot[2], world.iiwa_rot[3]))
+            world.publisher_iiwa.publish(pose_msgs)
+
+            # wall pose msg
+            wall_msgs = Pose(Point(world.wall_trans[0], world.wall_trans[1], world.wall_trans[2]),
+                                       Quaternion(world.wall_rot[0], world.wall_rot[1], world.wall_rot[2], world.wall_rot[3]))
+            world.publisher_wall.publish(wall_msgs)
