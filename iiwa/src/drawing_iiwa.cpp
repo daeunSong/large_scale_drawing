@@ -49,7 +49,7 @@ int DrawingIIWA::moveInitPose( ){
     jointPositionGoal.joint_position.position.a4 = -2.05948852; // -118d // -1.91986;
   jointPositionGoal.joint_position.position.a5 =  0.00;
   jointPositionGoal.joint_position.position.a6 = -0.759218225;// -43.5// -0.785399;
-  jointPositionGoal.joint_position.position.a7 = -0.523599;
+  jointPositionGoal.joint_position.position.a7 = 1.04;//-0.523599;
   // Send goal to action server
   jointPositionClient.sendGoal(jointPositionGoal);
 
@@ -75,7 +75,7 @@ int DrawingIIWA::moveTransportPose(){
   jointPositionGoal.joint_position.position.a4 = -1.91986;
   jointPositionGoal.joint_position.position.a5 =  0.00;
   jointPositionGoal.joint_position.position.a6 = 0.785398;//-0.785399;
-  jointPositionGoal.joint_position.position.a7 = -0.523599;
+  jointPositionGoal.joint_position.position.a7 = 1.04;//-0.523599;
   // Send goal to action server
   jointPositionClient.sendGoal(jointPositionGoal);
 
@@ -242,7 +242,10 @@ void DrawingIIWA::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strokes
 //    ros::Duration(0.5).sleep();
 //    sleepForMotion(iiwa_time_destination, 5.0);
 //    ros::Duration(0.5).sleep();
+
     setEndpointFrame(nh, "tool_ready_link_ee");
+//    ros::Duration(1.0).sleep();
+
     splineMotion.spline.segments.push_back(getSplineSegment(stroke[0], iiwa_msgs::SplineSegment::LIN));
     splineMotionClient.sendGoal(splineMotion);
 //    splineMotionClient.waitForResult();
@@ -256,6 +259,7 @@ void DrawingIIWA::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strokes
       ROS_ERROR("Action execution failed - exiting...");
     }
     splineMotion.spline.segments.clear();
+//    ros::Duration(1.0).sleep();
 
 //    // draw
 //    setEndpointFrame(nh, "tool_link_ee");

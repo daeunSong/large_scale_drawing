@@ -133,10 +133,10 @@ int main(int argc, char **argv){
     char input;
     for(int i = 0; i <= dm.range_num ; i++){
       // get ridgeback's position and orientation
-//      ROS_INFO("Waiting for ridgeback's position and orientation ...");
-//      boost::shared_ptr<geometry_msgs::Pose const> ridegeback_pose_;
-//      ridegeback_pose_ = ros::topic::waitForMessage<geometry_msgs::Pose>("/iiwa_ridgeback_communicaiton/ridgeback/pose",nh);
-//      geometry_msgs::Pose ridegeback_pose = *ridegeback_pose_;
+      ROS_INFO("Waiting for ridgeback's position and orientation ...");
+      boost::shared_ptr<geometry_msgs::Pose const> ridegeback_pose_;
+      ridegeback_pose_ = ros::topic::waitForMessage<geometry_msgs::Pose>("/iiwa_ridgeback_communicaiton/ridgeback/pose",nh);
+      geometry_msgs::Pose ridegeback_pose = *ridegeback_pose_;
 
       dm.publishState(1); // publish iiwa state WORKING
 
@@ -145,6 +145,8 @@ int main(int argc, char **argv){
         ROS_INFO("Relocate drawing coordinate according to iiwa's pose");
 //        dm.drawings[j].relocateDrawingsArb(ridegeback_pose, i);
         dm.drawings[j].relocateDrawingsArb(dm.iiwa_, i);
+//        std::cout << dm.iiwa_.position.x << ", " << dm.iiwa_.position.y << ", " << dm.iiwa_.position.z << std::endl;
+//        std::cout << ridegeback_pose.position.x << ", " << ridegeback_pose.position.y << ", " << ridegeback_pose.position.z << std::endl;
 //        dm.visualizeStrokes(dm.drawings[j].strokes_by_range[i]);
 
         // iiwa start drawing
@@ -152,26 +154,27 @@ int main(int argc, char **argv){
         iiwa.moveInitPose();
         iiwa.drawStrokes(nh, dm.drawings[j], i);
 
-        std::cout << "Change Color" << std::endl;
+        ros::Duration(0.5).sleep();
         dm.publishState(2);
         ros::Duration(1.0).sleep();
-        //iiwa.moveInitPose();
-        std::cin >> input;
+//        iiwa.moveInitPose();
+//        std::cout << "Change Color" << std::endl;
+//        std::cin >> input;
         // wait for ridgeback to finish moving
-//        ROS_INFO("Waiting for ridgeback's position and orientation ...");
-//        boost::shared_ptr<geometry_msgs::Pose const> ridegeback_pose_;
-//        ridegeback_pose_ = ros::topic::waitForMessage<geometry_msgs::Pose>("/iiwa_ridgeback_communicaiton/ridgeback/pose",nh);
-//        geometry_msgs::Pose ridegeback_pose = *ridegeback_pose_;
+        ROS_INFO("Waiting for ridgeback's position and orientation ...");
+        boost::shared_ptr<geometry_msgs::Pose const> ridegeback_pose_;
+        ridegeback_pose_ = ros::topic::waitForMessage<geometry_msgs::Pose>("/iiwa_ridgeback_communicaiton/ridgeback/pose",nh);
+        geometry_msgs::Pose ridegeback_pose = *ridegeback_pose_;
       }
 
       // finished iiwa drawing make ridgeback move
       std::cout << "\n\nIIWA DONE\n\n";
       dm.publishState(0); // publish iiwa state DONE
 
-//      // wait for ridgeback to finish moving
-//      ROS_INFO("Waiting for ridgeback to finish moving");
-//      boost::shared_ptr<std_msgs::Int32 const> ridgeback_state;
-//      ridgeback_state = ros::topic::waitForMessage<std_msgs::Int32>("/iiwa_ridgeback_communicaiton/ridgeback/state",nh);
+      // wait for ridgeback to finish moving
+      ROS_INFO("Waiting for ridgeback to finish moving");
+      boost::shared_ptr<std_msgs::Int32 const> ridgeback_state;
+      ridgeback_state = ros::topic::waitForMessage<std_msgs::Int32>("/iiwa_ridgeback_communicaiton/ridgeback/state",nh);
 
       std::cout << "\n\nRIDGEBACK MOVED\n\n";
     }

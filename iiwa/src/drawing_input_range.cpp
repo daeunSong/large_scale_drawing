@@ -298,6 +298,8 @@ void DrawingInput::readDrawingFileArb(){
   point_t pt, orientation;
   Stroke stroke;
   geometry_msgs::Pose drawing_pose;
+//  Eigen::Quaterniond rotq = Eigen::Quaterniond(Eigen::AngleAxisd(90*D2R, Eigen::Vector3d::UnitY()));
+//  Eigen::Quaterniond q = Eigen::Quaterniond(this->wall_.orientation.w,this->wall_.orientation.x,this->wall_.orientation.y,this->wall_.orientation.z);
 
   std::cout << "Start reading drawing file\n";
 
@@ -316,14 +318,13 @@ void DrawingInput::readDrawingFileArb(){
       pt.push_back(y); pt.push_back(z);
 
       tie(x, orientation) = getXAndQuaternion(pt);
-
-      drawing_pose.position.x = x + this->wall_pose[0];
-      drawing_pose.position.y = y + this->wall_pose[1];
+      drawing_pose.position.x = x;// + this->wall_pose[0];
+      drawing_pose.position.y = y;// + this->wall_pose[1];
       drawing_pose.position.z = z;
-      drawing_pose.orientation.x = orientation[0];
-      drawing_pose.orientation.y = orientation[1];
-      drawing_pose.orientation.z = orientation[2];
-      drawing_pose.orientation.w = orientation[3];
+      drawing_pose.orientation.x = 0.0;//q.x();//orientation[0];
+      drawing_pose.orientation.y = 0.706825;//q.y();//orientation[1];
+      drawing_pose.orientation.z = 0.0;//q.z();//orientation[2];
+      drawing_pose.orientation.w = 0.706825;//q.w();//orientation[3];
       stroke.push_back(drawing_pose);
     }
   }
@@ -449,13 +450,11 @@ double DrawingInput::getVectorSize(point_t &normal){
 }
 
 point_t DrawingInput::getCrossProduct(point_t &a, point_t &b){
-  point_t temp;
-
-  temp.push_back(a[1]*b[2]-a[2]*b[1]);
-  temp.push_back(a[2]*b[0]-a[0]*b[2]);
-  temp.push_back(a[0]*b[1]-a[1]*b[0]);
-
-  return temp;
+  point_t cross;
+  cross.push_back(a[1]*b[2]-a[2]*b[1]);
+  cross.push_back(a[2]*b[0]-a[0]*b[2]);
+  cross.push_back(a[0]*b[1]-a[1]*b[0]);
+  return cross;
 }
 
 tf::Matrix3x3 DrawingInput::getRotationMatrix(point_t &axis, double c){
@@ -464,11 +463,11 @@ tf::Matrix3x3 DrawingInput::getRotationMatrix(point_t &axis, double c){
   double uy = axis[1];
   double uz = axis[2];
 
-  tf::Matrix3x3 temp(c+ux*ux*(1-c),ux*uy*(1-c)-uz*s,ux*uz*(1-c)+uy*s,
+  tf::Matrix3x3 rot(c+ux*ux*(1-c),ux*uy*(1-c)-uz*s,ux*uz*(1-c)+uy*s,
                         uy*ux*(1-c)+uz*s, c+uy*uy*(1-c), uy*uz*(1-c)-ux*s,
                         uz*ux*(1-c)-uy*s, uz*uy*(1-c)+ux*s, c+uz*uz*(1-c));
 
-  return temp;
+  return rot;
 }
 
 void DrawingInput::setCanvasRangeArb(const std_msgs::Float64MultiArray &ri_ranges){
@@ -477,7 +476,6 @@ void DrawingInput::setCanvasRangeArb(const std_msgs::Float64MultiArray &ri_range
   int num_range = ri_ranges.data.size();
   
   std::array<double, 2> range;
-  
   range[0] = ri_ranges.data[0]; // start of drawing 
 
   for (int i = 1; i < num_range; i++) {
@@ -491,6 +489,7 @@ void DrawingInput::splitByRangeArb(const std_msgs::Float64MultiArray &ri_ranges)
   // get range ready
   this->setCanvasRangeArb(ri_ranges);
   std::vector<std::vector<Stroke>> strokes_by_range (this->ranges.size());
+  Eigen::Quaterniond q = Eigen::Quaterniond(this->wall_.orientation.w,this->wall_.orientation.x,this->wall_.orientation.y,this->wall_.orientation.z);
 
   // detect which range the drawing coordinate is in
   int range_index_prev, range_index;
@@ -503,7 +502,8 @@ void DrawingInput::splitByRangeArb(const std_msgs::Float64MultiArray &ri_ranges)
     for (int j = 1; j < this->strokes[i].size(); j++) {
       range_index = this->detectRange(strokes[i][j]);
 
-      if (range_index_prev != range_index) { // split stroke
+      if (range_index_prev != range_index) {
+      // split the stroke if the stroke moves across the ranges
         int index = std::min(range_index_prev, range_index);
         geometry_msgs::Pose contact = this->strokes[i][j];
         contact.position.x = (strokes[i][j].position.x - strokes[i][j-1].position.x)*(this->ranges[index][1] - strokes[i][j-1].position.y)/(strokes[i][j].position.x - strokes[i][j-1].position.y) + strokes[i][j-1].position.x;
@@ -511,7 +511,7 @@ void DrawingInput::splitByRangeArb(const std_msgs::Float64MultiArray &ri_ranges)
         contact.position.z = (strokes[i][j].position.z - strokes[i][j-1].position.z)*(this->ranges[index][1] - strokes[i][j-1].position.y)/(strokes[i][j].position.z - strokes[i][j-1].position.y) + strokes[i][j-1].position.z;
         stroke.push_back (contact);
 
-        // only if stroke size is bigger than 5 points
+        // only if stroke size is bigger than 2 points
         if (stroke.size() > 2) {
           strokes_by_range[range_index_prev].push_back(stroke);
         }
@@ -529,31 +529,39 @@ void DrawingInput::splitByRangeArb(const std_msgs::Float64MultiArray &ri_ranges)
     Stroke().swap(stroke);
   }
 
-  this->strokes_by_range = strokes_by_range;
-}
+  // transform the strokes in {Vive_World}
+  Eigen::Vector3d t = Eigen::Vector3d(this->wall_.position.x, this->wall_.position.y,0);
+  Eigen::Matrix3d r = q.toRotationMatrix();
 
+  Eigen::Matrix4d mat = Eigen::Matrix4d::Identity();
+  mat.block<3,3>(0,0) = r;
+  mat.block<3,1>(0,3) = t;
 
-std::vector<std::vector<double>> DrawingInput::matrixMult(const std::vector<std::vector<double>> &A, const std::vector<std::vector<double>> &B){
-  std::vector<std::vector<double>> ans;
-  std::cout << "MULT\n";
+  for (int i = 0; i < strokes_by_range.size(); i++){ // range
+    for (int j = 0; j < strokes_by_range[i].size(); j++){ // strokes
+      for (int k = 0; k < strokes_by_range[i][j].size(); k++){ // points
+        Eigen::Vector4d stroke_point (strokes_by_range[i][j][k].position.x,
+                                  strokes_by_range[i][j][k].position.y,
+                                  strokes_by_range[i][j][k].position.z, 1);
+        Eigen::Quaterniond stroke_ori (strokes_by_range[i][j][k].orientation.w,
+                                  strokes_by_range[i][j][k].orientation.x,
+                                  strokes_by_range[i][j][k].orientation.y,
+                                  strokes_by_range[i][j][k].orientation.z);
+        stroke_point = mat * stroke_point;
+        stroke_ori = q * stroke_ori;
 
-  for(int i = 0; i < A.size(); i++){
-  	std::vector<double> temp;
-    for(int j = 0; j < A[0].size(); j++){
-      double sum = 0;
-      for(int k=0; k < A[0].size(); k++){    
-        sum +=A[i][k]*B[k][j];    
-      }  
-      temp.push_back(sum);
+        strokes_by_range[i][j][k].position.x = stroke_point[0];
+        strokes_by_range[i][j][k].position.y = stroke_point[1];
+        strokes_by_range[i][j][k].position.z = stroke_point[2];
+        strokes_by_range[i][j][k].orientation.x = stroke_ori.x();
+        strokes_by_range[i][j][k].orientation.y = stroke_ori.y();
+        strokes_by_range[i][j][k].orientation.z = stroke_ori.z();
+        strokes_by_range[i][j][k].orientation.w = stroke_ori.w();
+      }
     }
-    ans.push_back(temp);
-    temp.clear();
   }
 
-  std::cout << "MULT return\n";
-
-
-  return ans;
+  this->strokes_by_range = strokes_by_range;
 }
 
 
