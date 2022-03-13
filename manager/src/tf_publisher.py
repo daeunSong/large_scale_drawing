@@ -37,7 +37,7 @@ class RealWorld():
                         rospy.Time.now(),
                         'vive_ridgeback',
                         'vive_tracker')
-            self.broadcaster.sendTransform([0.12,0,0],
+            self.broadcaster.sendTransform([0.125,0,0],
                         [0,0,0,1],
                         rospy.Time.now(),
                         'vive_iiwa',
@@ -53,11 +53,11 @@ class RealWorld():
                         rospy.Time.now(),
                         'vive_temp',
                         'vive_world')
-            self.broadcaster.sendTransform([msg.twist.twist.linear.x-0.50,0,0],
+            self.broadcaster.sendTransform([-0.25,0.03,0],
                         [0,0,0,1],
                         rospy.Time.now(),
                         'vive_wall',
-                        'vive_temp')
+                        'vive_temp') #[-0.32,0.11,0]
 
 if __name__ == '__main__':
     rospy.init_node('vive_tf_publisher')

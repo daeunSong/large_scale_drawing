@@ -60,8 +60,8 @@ void MarkerPublisher::initWall() {
   marker_pose.orientation.y = wall_.orientation.y;//wall_pose[4];
   marker_pose.orientation.z = wall_.orientation.z;//wall_pose[5];
   marker_pose.orientation.w = wall_.orientation.w;//wall_pose[6];
-  std::cout << wall_.position.x << ", " << wall_.position.y << ", " << wall_.position.z << ", " <<
-                wall_.orientation.x << ", " << wall_.orientation.y << ", " << wall_.orientation.z << ", " << wall_.orientation.w << std::endl;
+//  std::cout << wall_.position.x << ", " << wall_.position.y << ", " << wall_.position.z << ", " <<
+//                wall_.orientation.x << ", " << wall_.orientation.y << ", " << wall_.orientation.z << ", " << wall_.orientation.w << std::endl;
 
   wall_marker.pose = marker_pose;
   wall_marker.scale.x = 1.0;
@@ -79,7 +79,7 @@ void MarkerPublisher::initWall() {
     marker_pub.publish(wall_marker);
     ros::Duration(0.1).sleep();
   }
-  std::cout << "wall marker published" << std::endl;
+//  std::cout << "wall marker published" << std::endl;
 }
 
 // Callback function to know whether if ready to visualize drawing

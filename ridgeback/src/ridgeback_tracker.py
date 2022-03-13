@@ -24,7 +24,7 @@ class Ridgeback:
         self.publisher_cmd_vel = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
         self.subscriber_tracker = rospy.Subscriber('/vive/ridgeback', Odometry, self.tracker_callback, queue_size=1)
         self.subscriber_wall = rospy.Subscriber('/vive/wall', Pose, self.wall_callback, queue_size=1)
-        self.subscriber_iiwa = rospy.Subscriber("/iiwa_ridgeback_communicaiton/iiwa/state", Int32, self.iiwa_callback)
+        self.subscriber_iiwa = rospy.Subscriber("/iiwa_ridgeback_communicaiton/iiwa/state", Int32, self.iiwa_callback, queue_size=1)
         self.subscriber_odom = rospy.Subscriber('/ridgeback_velocity_controller/odom', Odometry, self.odom_callback, queue_size=1)
 
         self.linear_speed = 0.05
@@ -116,7 +116,7 @@ class Ridgeback:
         cmd.linear.x = tools.check_speed(self.linear_speed) * direction[0]
         cmd.linear.y = tools.check_speed(self.linear_speed) * direction[1]
 
-        dist = tools.dist2d(target_position, [0,0])
+        dist = tools.dist2d(np.array(target_position), np.array([0,0]))
 
         while iter < dist * 100 * 1000 :
             self.publisher_cmd_vel.publish(cmd)
@@ -228,6 +228,21 @@ class Ridgeback:
             self.publisher_traj.publish(message)
             rate.sleep()
 
+    def move_path(self, path, angles, range_num):
+        # self.publish_state(1)
+        target_pos = np.array([path[range_num][0], path[range_num][1]])
+        target_yaw = angles[range_num]
+
+        # rotate target wrt wall tracker pose
+        r = R.from_quat([self.wall_pose.orientation.x,self.wall_pose.orientation.y,self.wall_pose.orientation.z,self.wall_pose.orientation.w])
+        target_pos = np.matmul(r.as_matrix(), np.append(target_pos, np.array([0])))
+        target_pos = target_pos[:2] + np.array([self.wall_pose.position.x, self.wall_pose.position.y])
+
+        target_yaw = target_yaw * np.pi/180 + self.wall_yaw
+
+        # self.move_relative([-0.2,0.0])
+        self.move(np.array(target_pos),target_yaw)
+
     def follow_trajectory(self, path, angles):
         for i in range(len(angles)):
             self.publish_state(1)
@@ -253,13 +268,13 @@ class Ridgeback:
                 if self.iiwa_state != 1: # iiwa waiting
                     rospy.sleep(2)
                     self.publish_pose()
-                    rospy.sleep(2)
+                    # rospy.sleep(2)
                 if self.iiwa_state == 2: # change color
                     rospy.sleep(2)
-                    self.move_relative([-0.2,0.0])
-                    input("Press Enter to continue...")
-                    rospy.sleep(2)
-                    self.move(np.array(target_pos),target_yaw)
+                    # self.move_relative([-0.2,0.0])
+                    # input("Press Enter to continue...")
+                    # rospy.sleep(2)
+                    # self.move(np.array(target_pos),target_yaw)
                     self.publish_pose()
                     self.iiwa_state = 1
                     self.ridgeback_state = 1
@@ -350,11 +365,14 @@ if __name__=='__main__':
 
     Rid.read_file()
     Rid.publish_trajectory()
-    # Rid.move(np.array([0.5,0]),0)
+    i = 3
 
     try:
         while Rid.wall_pose == None:
             print ("wait for tracker callback")
-        Rid.follow_trajectory(list(zip(Rid.path_x, Rid.path_y)), Rid.path_angle)
-    except rospy.ROSInterruptException:
+        # Rid.follow_trajectory(list(zip(Rid.path_x, Rid.path_y)), Rid.path_angle)
+        Rid.publish_pose()
+        # Rid.move_path(list(zip(Rid.path_x, Rid.path_y)), Rid.path_angle, i)
+        # Rid.move_relative([-1.0,-1.0])
+    except rospy.ROSIntecrruptException:
         pass

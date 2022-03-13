@@ -6,6 +6,7 @@
 
   <!-- Parameters from the file -->
   <rosparam file="$(find large_scale_drawing)/data/config/bee_hive_paris.config" />
+  <param name="/iiwa/toolName" type="string" value="tool" />
 
   <!-- tf publisher -->
   <node name="tf_publisher" pkg="large_scale_drawing" type="tf_publisher.py" respawn="false" output="screen" />

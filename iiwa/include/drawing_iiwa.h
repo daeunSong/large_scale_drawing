@@ -44,7 +44,7 @@ class DrawingIIWA{
     iiwa_ros::service::ControlModeService iiwa_control_mode;
     iiwa_ros::service::TimeToDestinationService iiwa_time_destination;
     actionlib::SimpleActionClient<iiwa_msgs::MoveToJointPositionAction> jointPositionClient;
-    actionlib::SimpleActionClient<iiwa_msgs::MoveToCartesianPoseAction> cartesianPositionClient;
+//    actionlib::SimpleActionClient<iiwa_msgs::MoveToCartesianPoseAction> cartesianPositionClient;
     actionlib::SimpleActionClient<iiwa_msgs::MoveAlongSplineAction> splineMotionClient;
 
 //    actionlib::SimpleActionClient<iiwa_msgs::MoveToJointPositionAction> && jointPositionClient =
@@ -58,7 +58,7 @@ class DrawingIIWA{
     int moveInitPose();
     int moveTransportPose();
     iiwa_msgs::CartesianPose getCurrentPose();
-    void drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strokes, int range_num);
+    void drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strokes, int range_num, int stroke_num);
 
     void sleepForMotion(iiwa_ros::service::TimeToDestinationService& iiwa, const double maxSleepTime);
     iiwa_msgs::SplineSegment getSplineSegment (geometry_msgs::Pose waypoint_pose, int type);

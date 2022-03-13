@@ -132,7 +132,7 @@ int main(int argc, char **argv){
   bool done = false;
 
   int range_ = 3; // 1
-  int stroke_ = 415; // 200?
+  int stroke_ = 143; // 333 334 335
 
   while(ros::ok() && !done){
     char input;

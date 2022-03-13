@@ -298,8 +298,6 @@ void DrawingInput::readDrawingFileArb(){
   point_t pt, orientation;
   Stroke stroke;
   geometry_msgs::Pose drawing_pose;
-//  Eigen::Quaterniond rotq = Eigen::Quaterniond(Eigen::AngleAxisd(90*D2R, Eigen::Vector3d::UnitY()));
-//  Eigen::Quaterniond q = Eigen::Quaterniond(this->wall_.orientation.w,this->wall_.orientation.x,this->wall_.orientation.y,this->wall_.orientation.z);
 
   std::cout << "Start reading drawing file\n";
 
@@ -314,17 +312,17 @@ void DrawingInput::readDrawingFileArb(){
 
       tempSplit = split(line, ' ');
       y = (-stod(tempSplit[0])+0.5) * this->ratio * this->target_size;
-      z = (-stod(tempSplit[1])+0.5) * this->target_size + this->init_drawing_pose.position.z + 0.1;
+      z = (-stod(tempSplit[1])+0.5) * this->target_size + this->init_drawing_pose.position.z + 0.02;
       pt.push_back(y); pt.push_back(z);
 
       tie(x, orientation) = getXAndQuaternion(pt);
       drawing_pose.position.x = x;// + this->wall_pose[0];
       drawing_pose.position.y = y;// + this->wall_pose[1];
       drawing_pose.position.z = z;
-      drawing_pose.orientation.x = 0.0;//q.x();//orientation[0];
-      drawing_pose.orientation.y = 0.706825;//q.y();//orientation[1];
-      drawing_pose.orientation.z = 0.0;//q.z();//orientation[2];
-      drawing_pose.orientation.w = 0.706825;//q.w();//orientation[3];
+      drawing_pose.orientation.x = orientation[0];//0.0;//orientation[0];
+      drawing_pose.orientation.y = orientation[1];//0.706825;///orientation[1];
+      drawing_pose.orientation.z = orientation[2];//0.0;//orientation[2];
+      drawing_pose.orientation.w = orientation[3];//0.706825;///orientation[3];
       stroke.push_back(drawing_pose);
     }
   }
@@ -338,6 +336,23 @@ void DrawingInput::saveDemoFile(){
   outfile << std::to_string(this->size[0]) << " " << std::to_string(this->size[1]) << "\n";
   for (int i = 0; i < this->strokes.size(); i++) {
     for (int j = 0; j < this->strokes[i].size(); j++) {
+      geometry_msgs::Pose drawing_pose = this->strokes[i][j];
+      outfile << std::to_string(drawing_pose.position.x) << " " << std::to_string(drawing_pose.position.y) << " " << std::to_string(drawing_pose.position.z) << " "
+              << std::to_string(drawing_pose.orientation.x) << " " << std::to_string(drawing_pose.orientation.y) << " "
+              << std::to_string(drawing_pose.orientation.z) << " " << std::to_string(drawing_pose.orientation.w) << "\n";
+    }
+    outfile << "End\n"; // End of stroke
+  }
+  outfile.close();
+}
+
+void DrawingInput::saveFile(std::vector<Stroke> strokes, int range){
+  std::ofstream outfile(ros::package::getPath("large_scale_drawing") + "/data/demo/" + this->drawing_file_name + this->wall_file_name + "_" + this->color + "_range_" + std::to_string(range) + ".txt");
+
+  // first line indicates the target drawing size
+//  outfile << std::to_string(this->size[0]) << " " << std::to_string(this->size[1]) << "\n";
+  for (int i = 0; i < strokes.size(); i++) {
+    for (int j = 0; j < strokes[i].size(); j++) {
       geometry_msgs::Pose drawing_pose = this->strokes[i][j];
       outfile << std::to_string(drawing_pose.position.x) << " " << std::to_string(drawing_pose.position.y) << " " << std::to_string(drawing_pose.position.z) << " "
               << std::to_string(drawing_pose.orientation.x) << " " << std::to_string(drawing_pose.orientation.y) << " "
@@ -586,8 +601,8 @@ void DrawingInput::relocateDrawingsArb(geometry_msgs::Pose &ridegeback_pose, int
                                     this->strokes_by_range[range_index][j][k].position.z, 1);
       // transform the position in {Ridgeback}
       stroke_point = mat * stroke_point;
-      this->strokes_by_range[range_index][j][k].position.x = stroke_point[0];
-      this->strokes_by_range[range_index][j][k].position.y = stroke_point[1];
+      this->strokes_by_range[range_index][j][k].position.x = stroke_point[0]-0.01;//-0.125;
+      this->strokes_by_range[range_index][j][k].position.y = stroke_point[1]-0.03;
       this->strokes_by_range[range_index][j][k].position.z = stroke_point[2];
 
       // transform the orientation in {Ridgeback}

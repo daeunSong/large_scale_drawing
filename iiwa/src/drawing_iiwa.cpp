@@ -2,7 +2,6 @@
 
 DrawingIIWA::DrawingIIWA(ros::NodeHandle &nh, std::string ee_link_, std::string reference_frame)
     : jointPositionClient("/iiwa/action/move_to_joint_position", true),
-      cartesianPositionClient("/iiwa/action/MoveToCartesianPose", true),
       splineMotionClient("/iiwa/action/move_along_spline", true)
 {
   ROS_INFO("Waiting for action servers to start...");
@@ -158,11 +157,11 @@ bool DrawingIIWA::setPTPCartesianSpeedLimits(ros::NodeHandle& nh) {
   ROS_INFO("Setting PTP Cartesian speed limits...");
   ros::ServiceClient setPTPCartesianSpeedLimitsClient = nh.serviceClient<iiwa_msgs::SetPTPCartesianSpeedLimits>("/iiwa/configuration/setPTPCartesianLimits");
   iiwa_msgs::SetPTPCartesianSpeedLimits cartesianSpeedLimits;
-  cartesianSpeedLimits.request.maxCartesianVelocity = 0.5;
-  cartesianSpeedLimits.request.maxCartesianAcceleration = 0.5;
+  cartesianSpeedLimits.request.maxCartesianVelocity = 0.3;
+  cartesianSpeedLimits.request.maxCartesianAcceleration = 0.3;
   cartesianSpeedLimits.request.maxCartesianJerk = -1.0; // ignore
-  cartesianSpeedLimits.request.maxOrientationVelocity = 0.5;
-  cartesianSpeedLimits.request.maxOrientationAcceleration = 0.5;
+  cartesianSpeedLimits.request.maxOrientationVelocity = 0.3;
+  cartesianSpeedLimits.request.maxOrientationAcceleration = 0.3;
   cartesianSpeedLimits.request.maxOrientationJerk = -1.0; // ignore
   if (!setPTPCartesianSpeedLimitsClient.call(cartesianSpeedLimits)) {
     ROS_ERROR("Failed.");
@@ -219,69 +218,59 @@ bool DrawingIIWA::setEndpointFrame(ros::NodeHandle& nh, std::string frameId="iiw
   return true;
 }
 
-void DrawingIIWA::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strokes, int range_num){
+void DrawingIIWA::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strokes, int range_num, int stroke_num){
 
   // drawing commands related
   std_msgs::Bool ready;
   bool finished_before_timeout;
-  int j = 0;
 
   iiwa_msgs::CartesianPose command_cartesian_position;
   command_cartesian_position = this->init_pose;
   iiwa_msgs::MoveAlongSplineGoal splineMotion;
   int num_strokes = drawing_strokes.strokes_by_range[range_num].size();
 
-  for (auto stroke : drawing_strokes.strokes_by_range[range_num]) {
-//    iiwa_control_mode.setPositionControlMode();
-//    command_cartesian_position.poseStamped.pose = stroke[0];
+//  for (auto stroke : drawing_strokes.strokes_by_range[range_num]) {
+  for (int i = stroke_num; i < drawing_strokes.strokes_by_range[range_num].size() ; i++){
+//  for (int i = stroke_num; i < int(drawing_strokes.strokes_by_range[range_num].size()/50) ; i++){
+    std::vector<geometry_msgs::Pose> stroke = drawing_strokes.strokes_by_range[range_num][i];
+    iiwa_control_mode.setPositionControlMode();
+    command_cartesian_position.poseStamped.pose = stroke[0];
 //    command_cartesian_position.poseStamped.pose.position.x -= BACKWARD/2;
-//    setEndpointFrame(nh, "tool_ready_link_ee");
+    setEndpointFrame(nh, "tool_ready_link_ee");
+    ros::Duration(0.5).sleep();
 
     // move to ready position in position control
-//    iiwa_pose_command.setPose(command_cartesian_position.poseStamped);
-//    ros::Duration(0.5).sleep();
-//    sleepForMotion(iiwa_time_destination, 5.0);
-//    ros::Duration(0.5).sleep();
-
-    setEndpointFrame(nh, "tool_ready_link_ee");
-//    ros::Duration(1.0).sleep();
-
-    splineMotion.spline.segments.push_back(getSplineSegment(stroke[0], iiwa_msgs::SplineSegment::LIN));
+    splineMotion.spline.segments.push_back(this->getSplineSegment(stroke[0], iiwa_msgs::SplineSegment::LIN));
     splineMotionClient.sendGoal(splineMotion);
-//    splineMotionClient.waitForResult();
-
-    // Wait for the action to finish
-    finished_before_timeout = splineMotionClient.waitForResult();
-    if (!finished_before_timeout) {
-      ROS_WARN("iiwa motion timed out - exiting...");
-    }
-    else if (!jointPositionClient.getResult()->success) {
-      ROS_ERROR("Action execution failed - exiting...");
-    }
+    splineMotionClient.waitForResult();
     splineMotion.spline.segments.clear();
-//    ros::Duration(1.0).sleep();
+//    iiwa_pose_command.setPose(command_cartesian_position.poseStamped);
+//    sleepForMotion(iiwa_time_destination, 5.0);
+    ros::Duration(0.5).sleep();
 
 //    // draw
-//    setEndpointFrame(nh, "tool_link_ee");
-    std::cout << "Drawing " << drawing_strokes.color << " " << range_num << "th range, " << j << "th stroke out of " << num_strokes << " strokes ... " << std::endl;
-//
-//    splineMotion.spline.segments.push_back(this->getSplineSegment(stroke[0], iiwa_msgs::SplineSegment::LIN));
-//    for (int j = 1 ; j < stroke.size(); j++)
-//      splineMotion.spline.segments.push_back(this->getSplineSegment(stroke[j], iiwa_msgs::SplineSegment::SPL));
-//    splineMotionClient.sendGoal(splineMotion);
-//    splineMotionClient.waitForResult();
-//    splineMotion.spline.segments.clear();
-//
+    setEndpointFrame(nh, "tool_link_ee");
+    std::cout << "Drawing " << drawing_strokes.color << " " << range_num << "th range, " << i << "th stroke out of " << num_strokes << " strokes ... " << std::endl;
+
+    splineMotion.spline.segments.push_back(this->getSplineSegment(stroke[0], iiwa_msgs::SplineSegment::LIN));
+    for (int j = 1 ; j < stroke.size(); j++)
+      splineMotion.spline.segments.push_back(this->getSplineSegment(stroke[j], iiwa_msgs::SplineSegment::SPL));
+    splineMotionClient.sendGoal(splineMotion);
+    splineMotionClient.waitForResult();
+    splineMotion.spline.segments.clear();
+
     // move backward
-//    setEndpointFrame(nh, "tool_back_link_ee");
-//    iiwa_control_mode.setPositionControlMode();
-//    command_cartesian_position.poseStamped.pose = stroke.back();
-////    command_cartesian_position.poseStamped.pose.position.x -= BACKWARD;
+    setEndpointFrame(nh, "tool_back_link_ee");
+    iiwa_control_mode.setPositionControlMode();
+    command_cartesian_position.poseStamped.pose = stroke.back();
+    splineMotion.spline.segments.push_back(this->getSplineSegment(stroke.back(), iiwa_msgs::SplineSegment::LIN));
+    splineMotionClient.sendGoal(splineMotion);
+    splineMotionClient.waitForResult();
+    splineMotion.spline.segments.clear();
+//    command_cartesian_position.poseStamped.pose.position.x -= BACKWARD;
 //    iiwa_pose_command.setPose(command_cartesian_position.poseStamped);
-//    ros::Duration(0.5).sleep();
 //    sleepForMotion(iiwa_time_destination, 3.0);
-//    ros::Duration(0.5).sleep();
-    j++;
+    ros::Duration(0.5).sleep();
   }
   moveTransportPose();
 

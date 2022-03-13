@@ -131,8 +131,8 @@ int main(int argc, char **argv){
   dm.range_num = dm.drawings[0].strokes_by_range.size();
   bool done = false;
 
-  int range_ = 3; // 1
-  int stroke_ = 415; // 200?
+  int range_ = 3;
+  int stroke_ = 0;
 
   while(ros::ok() && !done){
     char input;

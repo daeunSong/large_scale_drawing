@@ -106,7 +106,7 @@ class Calibration:
 
         # set current position as origin
         if move: self.tracker.origin = tools.pos2arr(self.tracker.pose.position)
-        else: self.tracker.origin = np.array([-0.20449013, -1.36507463, 0.82675314])
+        else: self.tracker.origin = np.array([-0.16824788, -1.50806844, 0.54221308])
         if debug: print(f'origin: {self.tracker.origin}')
         rospy.sleep(1)
 
@@ -122,8 +122,8 @@ class Calibration:
             rospy.sleep(1)
             p2 = tools.pos2arr(self.tracker.pose.position)
         else:
-            p1 = np.array([-0.02860211, -0.47136998, 0.82893825])
-            p2 = np.array([-0.19813925, -1.36032724, 0.82110727])
+            p1 = np.array([0.30588138, -0.7477901, 0.53255761])
+            p2 = np.array([-0.14975846, -1.52949953, 0.54040873])
 
         self.r = np.linalg.norm(p1-p2)/2.0
         if debug: print(f'p1: {p1}, p2: {p2}')
@@ -134,7 +134,7 @@ class Calibration:
             self.move_relative([0.5,0])
             rospy.sleep(1)
             x_axis_position = tools.pos2arr(self.tracker.pose.position)
-        else: x_axis_position = np.array([-0.09869811, -0.88421291, 0.8294127])
+        else: x_axis_position = np.array([0.09724602, -1.10161424, 0.5350914])
         if debug: print(f'x_axis_position: {x_axis_position}')
 
         self.tracker.x_axis = x_axis_position - self.tracker.origin
@@ -147,7 +147,7 @@ class Calibration:
             self.move_relative([0,0.5]) # set axis
             rospy.sleep(1)
             y_axis_position = tools.pos2arr(self.tracker.pose.position)
-        else: y_axis_position = np.array([-0.56734687, -0.79909635, 0.83566904])
+        else: y_axis_position = np.array([-0.31767786, -0.86230278, 0.55781376])
         if debug: print(f'y_axis_position: {y_axis_position}')
 
         self.tracker.y_axis = y_axis_position - x_axis_position
