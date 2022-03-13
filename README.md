@@ -4,6 +4,31 @@
 
 <img src="./doc/img/demo.gif" width="600">
 
+This repository provides ROS-based simulation and visualization on a **large-scale robotic drawing system** using our customed, integrated robots, ridgeback mobile platform with KUKA LBR iiwa 7 R800 manipulator.
+
+The instruction below assumes that you have already installed ROS. ([ref](http://wiki.ros.org/melodic/Installation/Ubuntu))
+
+## ⚠️ ROS-Python3 Installation
+
+This might break your ROS workspace if you have your own ROS workspace running with Python2.
+
+1. Install ROS-Python3 related packages
+
+```shell
+sudo apt install python3-pip python3-all-dev python3-rospkg
+```
+
+2. Re-install ROS. Change *Melodic* with your version
+
+```shell
+sudo apt install ros-melodic-desktop-full --fix-missing 
+```
+
+3. Set your ROS version to Python3
+```shell
+echo "export ROS_PYTHON_VERSION=3" >> ~/.bashrc
+```
+
 ## Build and Compile
 
 1. Clone this repository:
@@ -24,6 +49,10 @@ git clone https://github.com/daeunSong/ridgeback_iiwa_integration.git
 ```
 
 3. Install the dependencies:
+```shell
+sudo apt-get install python3-catkin-tools
+pip3 install numpy matplotlib
+```
 ```sh
 cd ..
 rosdep install --from-paths src --ignore-src -r -y
@@ -34,13 +63,17 @@ rosdep install --from-paths src --ignore-src -r -y
 catkin build
 ```
 
-5. Add following lines in ~/.bashrc:
+5. Set your workspace:
+```shell
+echo "source ~/ros_ws/devel/setup.bash" >> ~/.bashrc
+```
 
-`source ~/ros_ws/devel/setup.bash`
+6. Add a parameter for robot description:
+```shell
+echo "export RIDGEBACK_URDF_EXTRAS=$(catkin_find ridgeback_iiwa_description urdf/ridgeback_iiwa_robot.urdf.xacro --first-only)" >> ~/.bashrc
+```
 
-`export RIDGEBACK_URDF_EXTRAS=$(catkin_find ridgeback_iiwa_description urdf/ridgeback_iiwa_robot.urdf.xacro --first-only)`
-
-6. source the bash file:
+7. source the bash file:
 
 ```sh
 source ~/.bashrc
