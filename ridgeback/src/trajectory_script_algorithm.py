@@ -331,6 +331,7 @@ def run_algorithm(file_name = 'bee_hive_three'):
     print('Candidates generated')
     steps = greedy_cover_iiwa(wall, C)
 
+    # TODO: FIX max_y_list last one
     min_y_list, max_y_list, path_x, path_y, path_angle = to_gazebo_cmd_format(steps)
 
     iiwa_range_list = to_iiwa_range(min_y_list, max_y_list)
