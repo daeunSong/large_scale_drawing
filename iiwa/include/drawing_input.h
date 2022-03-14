@@ -1,7 +1,11 @@
 #include <geometry_msgs/Pose.h>
+#include <std_msgs/Float64MultiArray.h>
 #include <ros/package.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf/tf.h>
+
+// Eigen
+#include <Eigen/Geometry>
 
 #include <stdio.h>
 #include <fstream>
@@ -13,77 +17,50 @@
 #include "KDTree.hpp"
 
 
+#define D2R M_PI/180
+#define R2D 180/M_PI
 #define Stroke std::vector<geometry_msgs::Pose>
 
 class DrawingInput {
   public:
+    DrawingInput(const std::string &, const char &, const geometry_msgs::Pose &);
     DrawingInput(const std::string &, const std::string &,
-                                  const char &, const std::string &,
-                                  const geometry_msgs::Pose &);
-    DrawingInput(const std::string &, const std::string &, const std::string &,
-                                  const char &, const std::string &,
-                                  const geometry_msgs::Pose &);
-
-    // DrawingInput(const std::string &path, const std::string &file_name,
-    //                               const char &color, const std::string &file_extension,
-    //                               const geometry_msgs::Pose &drawing_pose) {
-    //   setFileName(path, file_name, color, file_extension);
-    //   this->drawing_pose = drawing_pose;
-    //   readDrawingFile();
-    //   removeLongLine();
-    //   if (this->size[0] > 0.55)
-    //     splitByRange();
-    // };
-
-    // DrawingInput(const std::string &wall_name_, const std::string &path, const std::string &file_name,
-    //                               const char &color, const std::string &file_extension,
-    //                               const geometry_msgs::Pose &drawing_pose) {
-    //   setFileName(path, file_name, color, file_extension);
-    //   this->wall_name = wall_name_;
-    //   this->drawing_pose = drawing_pose;
-    //   setKDTree();
-    //   readDrawingFileArb();
-    //   removeLongLine();
-    //   if (this->size[0] > 0.55)
-    //     splitByRange();
-    // };
-
-
+                                  const char &, const geometry_msgs::Pose &, const std::vector<double>);
 
     std::vector<Stroke> strokes;
     std::vector<std::vector<Stroke>> strokes_by_range;
 
     // regarding input file
-    std::string path;
-    std::string file_name;
+    std::string drawing_file_name;
     char color;
-    std::string file_extension;
-    std::string file_name_full;
+    std::string drawing_file_name_full;
 
     // regarding drawing size
     std::vector<double> size; // width, height
     double target_size = 0.5; // target height
     double ratio;
-    geometry_msgs::Pose drawing_pose;
+    geometry_msgs::Pose init_drawing_pose;
 
     // regarding range splitting
     double max_range = 0.45;  // max range width
     std::vector<std::array<double, 2>> ranges;
-    std::vector<double> diffs;
 
-    // regarding wall file and data
-    std::string wall_name;
+    // regarding wall file and arbitrary drawing
+    std::string wall_file_name;
+    std::vector<double> wall_pose; // x, y, z, x, y, z, w
+    std::vector<double> wall_size; // width,height
     KDTree kdtree;
 
 
     // functions
-    void setFileName(const std::string path, const std::string file_name,
-                                  const char color, const std::string file_extension);
+    void setFileName(const std::string file_name, const char color);
     void setTargetSize (const double target_size);
     void setDrawingSize (const double ratio);
     void setCanvasRange ();
     void splitByRange();
     void readDrawingFile ();
+    void readDemoFile ();
+    void saveDemoFile ();
     void removeLongLine ();
     int detectRange(geometry_msgs::Pose p);
     double getDist(geometry_msgs::Pose p1, geometry_msgs::Pose p2);
@@ -99,4 +76,9 @@ class DrawingInput {
     double getVectorSize(point_t &);
     point_t getCrossProduct(point_t &, point_t &);
     tf::Matrix3x3 getRotationMatrix(point_t &, double);
+    void setCanvasRangeArb(const std_msgs::Float64MultiArray &ri_ranges);
+    void splitByRangeArb(const std_msgs::Float64MultiArray &ri_ranges);
+    std::vector<std::vector<double>> matrixMult(const std::vector<std::vector<double>> &A, const std::vector<std::vector<double>> &B);
+//    std::vector<std::vector<double>> matrixInv(const std::vector<std::vector<double>> &m);
+    void relocateDrawingsArb(geometry_msgs::Pose &ridgeback_pose, int range_index);
 };

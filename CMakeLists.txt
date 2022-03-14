@@ -24,7 +24,7 @@ find_package(catkin REQUIRED COMPONENTS
 include_directories(iiwa/include manager/include ${catkin_INCLUDE_DIRS})
 
 ADD_LIBRARY(drawingInput
-  iiwa/src/drawing_input_range.cpp
+  iiwa/src/drawing_input.cpp
   iiwa/src/KDTree.cpp
 )
 ADD_LIBRARY(drawingMoveit
