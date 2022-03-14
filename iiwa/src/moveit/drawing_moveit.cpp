@@ -86,17 +86,10 @@ geometry_msgs::PoseStamped DrawingMoveit::getCurrentPose(){
 }
 
 void DrawingMoveit::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strokes, int range_num){
-  if(drawing_strokes.color == 'c'){
-    this->color.x = 0.0; this->color.y = 1.0; this->color.z = 1.0;   // cyan (0, 255, 255)
-  }else if(drawing_strokes.color == 'm'){
-    this->color.x = 1.0; this->color.y = 0.0; this->color.z = 1.0;   // magenta (255, 0, 255)
-  }else if(drawing_strokes.color == 'y'){
-    this->color.x = 1.0; this->color.y = 1.0; this->color.z = 0.0;   // yellow (255, 255, 0)
-  }else if(drawing_strokes.color == 'r'){
-    this->color.x = 1.0; this->color.y = 0.0; this->color.z = 0.0;   // black (0, 0, 0)
-  }else{ // black
-    this->color.x = 0.0; this->color.y = 0.0; this->color.z = 0.0;   // black (0, 0, 0)
-  }
+
+  this->color.x = drawing_strokes.color[0]/100;
+  this->color.y = drawing_strokes.color[1]/100;
+  this->color.z = drawing_strokes.color[2]/100;
 
 //  this->addScene(drawing_coor.strokes_by_range.size() - range_num);
 
@@ -131,7 +124,7 @@ void DrawingMoveit::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strok
     linear_path.clear();
 
     // draw
-    std::cout << "Drawing " << drawing_strokes.color << " " << range_num << "th range, " << j << "th stroke ... " << std::endl;
+//    std::cout << "Drawing " << drawing_strokes.color << " " << range_num << "th range, " << j << "th stroke ... " << std::endl;
     fraction = this->move_group->computeCartesianPath(stroke, this->eef_step, this->jump_threshold, trajectory);
     my_plan.trajectory_ = trajectory;
     ros::Duration(0.1).sleep();

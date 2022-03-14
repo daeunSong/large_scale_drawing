@@ -23,16 +23,16 @@
 
 class DrawingInput {
   public:
-    DrawingInput(const std::string &, const char &, const geometry_msgs::Pose &);
-    DrawingInput(const std::string &, const std::string &,
-                                  const char &, const geometry_msgs::Pose &, const std::vector<double>);
+    DrawingInput(const std::string &, const std::string &, const int,
+                 const geometry_msgs::Pose &, const std::vector<double>, const std::vector<double>, const double);
 
     std::vector<Stroke> strokes;
     std::vector<std::vector<Stroke>> strokes_by_range;
 
     // regarding input file
     std::string drawing_file_name;
-    char color;
+    int index;
+    std::vector<double> color;
     std::string drawing_file_name_full;
 
     // regarding drawing size
@@ -53,8 +53,7 @@ class DrawingInput {
 
 
     // functions
-    void setFileName(const std::string file_name, const char color);
-    void setTargetSize (const double target_size);
+    void setFileName(const std::string file_name, const int color);
     void setDrawingSize (const double ratio);
     void setCanvasRange ();
     void splitByRange();

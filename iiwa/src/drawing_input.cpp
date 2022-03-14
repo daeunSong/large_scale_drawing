@@ -1,25 +1,22 @@
 #include "drawing_input.h"
 
-DrawingInput::DrawingInput(const std::string &drawing_file_name,
-                                  const char &color, const geometry_msgs::Pose &init_drawing_pose) {
-  setFileName(drawing_file_name, color);
-  this->init_drawing_pose = init_drawing_pose;
-  readDrawingFile();
-  removeLongLine();
-  if (this->size[0] > 0.55)
-    splitByRange();
-}
 
 DrawingInput::DrawingInput(const std::string &wall_file_name_, const std::string &drawing_file_name,
-                                  const char &color, const geometry_msgs::Pose &init_drawing_pose,
-                                  const std::vector<double> wall_pose_) {
-  setFileName(drawing_file_name, color);
+                                  const int index, const geometry_msgs::Pose &init_drawing_pose,
+                                  const std::vector<double> wall_pose_, const std::vector<double> colors_, double target_size) {
+  setFileName(drawing_file_name, index);
   this->wall_file_name = wall_file_name_;
   this->wall_pose = wall_pose_;
   this->init_drawing_pose = init_drawing_pose;
+  this->index = index;
+  this->target_size = target_size;
+
+  // set color
+  for (int i = 0; i < 3; i++)
+    this->color.push_back(colors_[index*3+i]);
 
   // try open demo file
-  std::ifstream txt(ros::package::getPath("large_scale_drawing") + "/data/demo/" + this->drawing_file_name + this->wall_file_name + "_" + this->color + "_demo.txt");
+  std::ifstream txt(ros::package::getPath("large_scale_drawing") + "/data/demo/" + this->drawing_file_name + this->wall_file_name + "_" + std::to_string(this->index) + "_demo.txt");
 
   if(!txt.is_open()){
     ROS_WARN("DEMO FILE NOT FOUND");
@@ -39,14 +36,10 @@ DrawingInput::DrawingInput(const std::string &wall_file_name_, const std::string
 
 }
 
-void DrawingInput::setFileName(const std::string drawing_file_name, const char color) {
+void DrawingInput::setFileName(const std::string drawing_file_name, const int index) {
   this->drawing_file_name = drawing_file_name;
-  this->color = color;
-  this->drawing_file_name_full = drawing_file_name + color + ".txt";
-}
-
-void DrawingInput::setTargetSize (const double target_size) {
-  this->target_size = target_size;
+  this->index = index;
+  this->drawing_file_name_full = drawing_file_name + std::to_string(index) + ".txt";
 }
 
 void DrawingInput::setDrawingSize (const double ratio) {
@@ -331,7 +324,7 @@ void DrawingInput::readDrawingFileArb(){
 }
 
 void DrawingInput::saveDemoFile(){
-  std::ofstream outfile(ros::package::getPath("large_scale_drawing") + "/data/demo/" + this->drawing_file_name + this->wall_file_name + "_" + this->color + "_demo.txt");
+  std::ofstream outfile(ros::package::getPath("large_scale_drawing") + "/data/demo/" + this->drawing_file_name + this->wall_file_name + "_" + std::to_string(this->index) + "_demo.txt");
 
   // first line indicates the target drawing size
   outfile << std::to_string(this->size[0]) << " " << std::to_string(this->size[1]) << "\n";
@@ -349,7 +342,7 @@ void DrawingInput::saveDemoFile(){
 
 void DrawingInput::readDemoFile(){
   std::string line;
-  std::ifstream txt(ros::package::getPath("large_scale_drawing") + "/data/demo/" + this->drawing_file_name + this->wall_file_name + "_" + this->color + "_demo.txt");
+  std::ifstream txt(ros::package::getPath("large_scale_drawing") + "/data/demo/" + this->drawing_file_name + this->wall_file_name + "_" + std::to_string(this->index) + "_demo.txt");
   // check if text file is well opened
   if(!txt.is_open()){
     ROS_ERROR("FILE NOT FOUND");

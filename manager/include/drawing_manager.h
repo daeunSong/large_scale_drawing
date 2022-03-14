@@ -45,9 +45,10 @@ class DrawingManager {
     // problem
     std::string wall_file_name, drawing_file_name;
     std::vector<double> wall_pose;
-    std::vector<std::string> colors;
+    std::vector<double> colors;
+    double target_size;
 
-    void visualizeStrokes(std::vector<Stroke> &strokes, char color);
+    void visualizeStrokes(std::vector<Stroke> &strokes, std::vector<double> color, int index);
     void publishState(std::string state);
 
   private:

@@ -6,6 +6,7 @@ DrawingManager::DrawingManager(ros::NodeHandle* nh):nh_(*nh) {
   nh_.getParam("/wall_pose", wall_pose);
   nh_.getParam("/drawing_file_name", drawing_file_name);
   nh_.getParam("/colors", colors);
+  nh_.getParam("/target_size", target_size);
 
   initSubscriber();
   initPublisher();
@@ -33,11 +34,11 @@ void DrawingManager::initMarker() {
   marker.type = visualization_msgs::Marker::LINE_STRIP;
 
   marker.pose.orientation.w = 1.0;
-  marker.scale.x = 0.001;
+  marker.scale.x = 0.003;
   marker.color.r = 0.0;
   marker.color.g = 0.0;
   marker.color.b = 0.0;
-  marker.color.a = 0.8;
+  marker.color.a = 1.0;
 }
 
 void DrawingManager::initMoveGroup() {
@@ -58,24 +59,15 @@ void DrawingManager::publishState(std::string state){
   ir_pub.publish(iiwa_state); // send iiwa state
 }
 
-void DrawingManager::visualizeStrokes(std::vector<Stroke> &strokes, char color){
-  int id = 0;
-
-  if(color == 'c'){
-    marker.color.r = 0.0; marker.color.g = 1.0; marker.color.b = 1.0;   // cyan (0, 255, 255)
-  }else if(color == 'm'){
-    marker.color.r = 1.0; marker.color.g = 0.0; marker.color.b = 1.0;   // magenta (255, 0, 255)
-  }else if(color == 'y'){
-    marker.color.r = 1.0; marker.color.g = 1.0; marker.color.b = 0.0;   // yellow (255, 255, 0)
-  }else if(color == 'r'){
-    marker.color.r = 1.0; marker.color.g = 0.0; marker.color.b = 0.0;   // black (0, 0, 0)
-  }else{ // black
-    marker.color.r = 0.0; marker.color.g = 0.0; marker.color.b = 0.0;   // black (0, 0, 0)
-  }
+void DrawingManager::visualizeStrokes(std::vector<Stroke> &strokes, std::vector<double> color, int index){
+  int id = index * 1000;
+  marker.color.r = color[0]/100;
+  marker.color.g = color[1]/100;
+  marker.color.b = color[2]/100;
 
   for (int i = 0; i < strokes.size(); i++) { // storkes
     marker.header.stamp = ros::Time::now();
-    marker.id = id * int(color); id++;
+    marker.id = id; id++;
     for (int j = 0; j < strokes[i].size(); j++) { // points
       marker.points.push_back(strokes[i][j].position);
     }
@@ -106,13 +98,11 @@ int main(int argc, char **argv){
   dm.init_drawing_pose.position.z += 0.05;  // move up
 
   //*********** Init Drawing
-  for (int i = 0; i < dm.colors.size(); i++){
-    char ch[1];
-    strcpy(ch, dm.colors[i].c_str());
+  for (int i = 0; i < dm.colors.size()/3; i++){
     ROS_INFO("Drawing init");
-    DrawingInput drawing(dm.wall_file_name, dm.drawing_file_name, ch[0], dm.init_drawing_pose, dm.wall_pose);
+    DrawingInput drawing(dm.wall_file_name, dm.drawing_file_name, i, dm.init_drawing_pose, dm.wall_pose, dm.colors, dm.target_size);
     dm.drawings.push_back(drawing);
-    dm.visualizeStrokes(drawing.strokes, drawing.color);
+    dm.visualizeStrokes(drawing.strokes, drawing.color, i);
   }
 
 //  //*********** Wait for ridgeback
