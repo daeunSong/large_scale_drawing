@@ -39,7 +39,7 @@ void MarkerPublisher::initMarker() {
   line_strip.type = visualization_msgs::Marker::LINE_STRIP;
 
   line_strip.pose.orientation.w = 1.0;
-  line_strip.scale.x = 0.001;
+  line_strip.scale.x = 0.003;
 }
 
 // init

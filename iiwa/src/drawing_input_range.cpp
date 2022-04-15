@@ -312,7 +312,7 @@ void DrawingInput::readDrawingFileArb(){
 
       tempSplit = split(line, ' ');
       y = (-stod(tempSplit[0])+0.5) * this->ratio * this->target_size;
-      z = (-stod(tempSplit[1])+0.5) * this->target_size + this->init_drawing_pose.position.z + 0.1;
+      z = (-stod(tempSplit[1])+0.5) * this->target_size + this->init_drawing_pose.position.z;
       pt.push_back(y); pt.push_back(z);
 
       tie(x, orientation) = getXAndQuaternion(pt);

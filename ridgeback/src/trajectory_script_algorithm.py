@@ -30,7 +30,7 @@ class Iidgeback:
         else:
             self.direction = 'r'
             # print('right')
-        print('--------------------angle: ',math.degrees(self.angle))
+        #print('--------------------angle: ',math.degrees(self.angle))
         self.set_ridgeback()
 
         return self.angle
@@ -121,7 +121,7 @@ class Wall:
             else:
                 continue
         plt.scatter(cx, cy, marker="1")
-        print('length covered:', len(self.covered), '/', len(self.uncovered) + len(self.covered))
+        #print('length covered:', len(self.covered), '/', len(self.uncovered) + len(self.covered))
 
     def allcovered(self):
         if len(self.uncovered) <3:
@@ -130,7 +130,7 @@ class Wall:
             return False
 
     def print_map(self):
-        plt.plot(self.xpoints, self.ypoints)
+        plt.plot(self.xpoints, self.ypoints, 'k')
 
 class Candidate:
     def __init__(self, wall, input_wall):
@@ -139,7 +139,7 @@ class Candidate:
         self.input_wall = input_wall
 
     def generate_c(self):
-        start = time.time()
+        #start = time.time()
         IR = []
         id = 0
         limit = 0.3
@@ -185,8 +185,8 @@ def max_coverage(wall, C):
         else:
             continue
     selected = final_candidates[len(final_candidates) // 3]
-    print("++++++++++++++++++++++", len(final_candidates))
-    print("max_coverage id:", selected.id, 'covers:', max_covered_points)
+    #print("++++++++++++++++++++++", len(final_candidates))
+    #print("max_coverage id:", selected.id, 'covers:', max_covered_points)
     if max_covered_points == 0:
         return None
     return selected
@@ -194,7 +194,7 @@ def max_coverage(wall, C):
     
 def greedy_cover_iiwa(wall, C):
     # print('in greedy')
-    t_start = time.time()
+    #t_start = time.time()
     steps = []
     while not wall.allcovered():
         max_circle = max_coverage(wall, C.candidate)
@@ -206,15 +206,19 @@ def greedy_cover_iiwa(wall, C):
         steps.append(max_circle)
         max_circle.set_angle()
         max_circle.print_map()
-        max_circle.print_id()
+        # max_circle.print_id()
         max_circle.plot_direction()
-    print('wall all covered')
+        #plt.ion()
+        #plt.show()
+        #plt.pause(0.01)
+
+    #print('wall all covered')
     for s in steps:
         # print(s.i_center, end="")
         pass
-    print("path generated with", len(steps), "circles")
-    t_end = time.time()
-    print('time: ', t_end - t_start)
+    #print("path generated with", len(steps), "circles")
+    #t_end = time.time()
+    #print('time: ', t_end - t_start)
     return steps
 
 def generate_interval(wall, count=1):
@@ -226,7 +230,7 @@ def generate_interval(wall, count=1):
 
 
 def setting(circle):
-    print('c:', circle.r_center)
+    #print('c:', circle.r_center)
     return circle.r_center[1]
 
 def open_wall_file(filename, fileext="obj"):
@@ -268,22 +272,23 @@ def plot_wall_draw(wall, size=0.4):
     y_wall = list(np.array(wall).T[1])
     z_wall = list(np.array(wall).T[2])
 
-    if len([i for i in x_wall[:10] if i==0]) > 3:
-        z_wall = [z for z in z_wall]
-        # plt.scatter(y_wall, z_wall, c='indigo', s=size, marker=marker_shape)
-        print('zero: x')
-        return y_wall, z_wall
-    elif len([i for i in y_wall[:10] if i==0]) > 3:
-        z_wall = [z for z in z_wall]
-        # plt.scatter(x_wall, z_wall, c='indigo', s=size, marker=marker_shape)
-        print('zero: y')
-        return x_wall, z_wall
-    elif len([i for i in z_wall[:10] if i==0]) > 3:
-        y_wall = [y for y in y_wall]
-        # plt.scatter(x_wall, y_wall, c='indigo', s=size, marker=marker_shape)
-        print('zero: z')
-        return x_wall, y_wall
-    print('done')
+
+    # if len([i for i in x_wall[:10] if i==0]) > 3:
+    #     z_wall = [z for z in z_wall]
+    #     # plt.scatter(y_wall, z_wall, c='indigo', s=size, marker=marker_shape)
+    #     print('zero: x')
+    #     return y_wall, z_wall
+    # elif len([i for i in y_wall[:10] if i==0]) > 3:
+    #     z_wall = [z for z in z_wall]
+    #     # plt.scatter(x_wall, z_wall, c='indigo', s=size, marker=marker_shape)
+    #     print('zero: y')
+    #     return x_wall, z_wall
+    # elif len([i for i in z_wall[:10] if i==0]) > 3:
+    y_wall = [y for y in y_wall]
+    #     # plt.scatter(x_wall, y_wall, c='indigo', s=size, marker=marker_shape)
+    #     print('zero: z')
+    return x_wall, y_wall
+    #print('done')
 
 def to_gazebo_cmd_format(steps):
     # sort path +y to -y
@@ -323,29 +328,34 @@ def run_algorithm(file_name = 'bee_hive_three'):
     x_wall, y_wall = plot_wall_draw(input_wall)
     # y_wall, x_wall = plot_wall_draw(input_wall)
 
+    start = time.time()
     x = generate_interval(x_wall)
     y = generate_interval(y_wall)
     wall = Wall(x, y)
 
     C = Candidate(wall, input_wall)
-    print('Candidates generated')
+    #print('Candidates generated')
     steps = greedy_cover_iiwa(wall, C)
+    end = time.time()
+    print('time: ', end - start)
 
     min_y_list, max_y_list, path_x, path_y, path_angle = to_gazebo_cmd_format(steps)
 
     iiwa_range_list = to_iiwa_range(min_y_list, max_y_list)
     # print(min_y_list)
     # print(max_y_list)
-    
-    print(iiwa_range_list)
-    print(path_angle)
-    print(path_x)
-    print(path_y)
 
-    plt.plot(x, y, color="grey")
+    #print(iiwa_range_list)
+    #print(path_angle)
+    #print(path_x)
+    #print(path_y)
+
+    # plt.plot(x, y, color="grey")
     plt.gca().set_aspect('equal', adjustable='box')
+    plt.savefig("curve_setcover.pdf")
     plt.show()
     return iiwa_range_list, path_x, path_y, path_angle
 
 if __name__ == "__main__":
-    run_algorithm()
+    run_algorithm('curve')
+    

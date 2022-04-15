@@ -288,5 +288,25 @@ if __name__ == '__main__':
     print('publish trajectory done')
     # Rid.fixed_rotate(0)  # temp
     print('rotated to 0 degrees for the first time')
-    Rid.follow_trajectory(list(zip(Rid.path_x, Rid.path_y)), Rid.path_angle)
+    path = list(zip(Rid.path_x, Rid.path_y))
+    Rid.follow_trajectory(path, Rid.path_angle)
+    # i = 0
+    # result = Rid.fixed_goal(path[i][0] + Rid.wall_pose[0], path[i][1] + Rid.wall_pose[1])
+    # result = Rid.fixed_rotate(Rid.path_angle[i])
+    #
+    # i = 1
+    # result = Rid.fixed_goal(path[i][0] + Rid.wall_pose[0], path[i][1] + Rid.wall_pose[1])
+    # result = Rid.fixed_rotate(Rid.path_angle[i])
+    #
+    # i = 2
+    # result = Rid.fixed_goal(path[i][0] + Rid.wall_pose[0], path[i][1] + Rid.wall_pose[1])
+    # result = Rid.fixed_rotate(Rid.path_angle[i])
+    #
+    # i = 3
+    # result = Rid.fixed_goal(path[i][0] + Rid.wall_pose[0], path[i][1] + Rid.wall_pose[1])
+    # result = Rid.fixed_rotate(Rid.path_angle[i])
+    #
+    # i = 4
+    # result = Rid.fixed_goal(path[i][0] + Rid.wall_pose[0], path[i][1] + Rid.wall_pose[1])
+    # result = Rid.fixed_rotate(Rid.path_angle[i])
 
