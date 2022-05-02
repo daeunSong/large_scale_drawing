@@ -39,7 +39,7 @@ void MarkerPublisher::initMarker() {
   line_strip.type = visualization_msgs::Marker::LINE_STRIP;
 
   line_strip.pose.orientation.w = 1.0;
-  line_strip.scale.x = 0.001;
+  line_strip.scale.x = 0.003;
 }
 
 // init
@@ -144,7 +144,7 @@ geometry_msgs::Point MarkerPublisher::getEEPoint(){
 
 // Set color
 void MarkerPublisher::setColor(){
-  line_strip.color.a = 0.5;
+  line_strip.color.a = 0.4;
   line_strip.color.r = line_color.x;
   line_strip.color.g = line_color.y;
   line_strip.color.b = line_color.z;
