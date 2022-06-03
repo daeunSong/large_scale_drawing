@@ -357,5 +357,5 @@ def run_algorithm(file_name = 'bee_hive_three'):
     return iiwa_range_list, path_x, path_y, path_angle
 
 if __name__ == "__main__":
-    run_algorithm('curve')
+    run_algorithm('curve_')
     

@@ -89,6 +89,7 @@ void DrawingManager::visualizeStrokes(std::vector<Stroke> &strokes, char color){
     marker.header.stamp = ros::Time::now();
     marker.id = id; id++;
     for (int j = 0; j < strokes[i].size(); j++) { // points
+      strokes[i][j].position.z += 0.2;
       marker.points.push_back(strokes[i][j].position);
     }
     marker_pub.publish(marker);
@@ -139,19 +140,19 @@ int main(int argc, char **argv){
     dm.drawings[i].splitByRangeArb(dm.ranges);
   }
 
-//  dm.range_num = dm.drawings[0].strokes_by_range.size();
-//  dm.visualizeStrokes(dm.drawings[0].strokes_by_range[0], 'r');
-//  dm.visualizeStrokes(dm.drawings[1].strokes_by_range[0], 'r');
-//  dm.visualizeStrokes(dm.drawings[2].strokes_by_range[0], 'r');
-//
-//  dm.visualizeStrokes(dm.drawings[0].strokes_by_range[1], 'o');
+  dm.range_num = dm.drawings[0].strokes_by_range.size();
+  dm.visualizeStrokes(dm.drawings[0].strokes_by_range[0], 'b');
+//  dm.visualizeStrokes(dm.drawings[1].strokes_by_range[0], 'b');
+//  dm.visualizeStrokes(dm.drawings[2].strokes_by_range[0], 'b');
+
+  dm.visualizeStrokes(dm.drawings[0].strokes_by_range[1], 'o');
 //  dm.visualizeStrokes(dm.drawings[1].strokes_by_range[1], 'o');
 //  dm.visualizeStrokes(dm.drawings[2].strokes_by_range[1], 'o');
-//
-//  dm.visualizeStrokes(dm.drawings[0].strokes_by_range[2], 'p');
-//  dm.visualizeStrokes(dm.drawings[1].strokes_by_range[2], 'p');
-//  dm.visualizeStrokes(dm.drawings[2].strokes_by_range[2], 'p');
-//
+
+  dm.visualizeStrokes(dm.drawings[0].strokes_by_range[2], 'g');
+//  dm.visualizeStrokes(dm.drawings[1].strokes_by_range[2], 'g');
+//  dm.visualizeStrokes(dm.drawings[2].strokes_by_range[2], 'g');
+
 //  dm.visualizeStrokes(dm.drawings[0].strokes_by_range[3], 'b');
 //  dm.visualizeStrokes(dm.drawings[1].strokes_by_range[3], 'b');
 //  dm.visualizeStrokes(dm.drawings[2].strokes_by_range[3], 'b');
@@ -160,42 +161,42 @@ int main(int argc, char **argv){
 //  dm.visualizeStrokes(dm.drawings[1].strokes_by_range[4], 'g');
 //  dm.visualizeStrokes(dm.drawings[2].strokes_by_range[4], 'g');
 
-  //*********** Drawing and moving
-  dm.range_num = dm.drawings[0].strokes_by_range.size();
+//  //*********** Drawing and moving
+//  dm.range_num = dm.drawings[0].strokes_by_range.size();
   bool done = false;
-
+//
   while(ros::ok() && !done){
-    for(int i = 0; i <= dm.range_num ; i++){
-      // get ridgeback's position and orientation
-      ROS_INFO("Waiting for ridgeback's position and orientation ...");
-      boost::shared_ptr<geometry_msgs::Pose const> ridegeback_pose_;
-      ridegeback_pose_ = ros::topic::waitForMessage<geometry_msgs::Pose>("/iiwa_ridgeback_communicaiton/ridgeback/pose",nh);
-      geometry_msgs::Pose ridegeback_pose = *ridegeback_pose_;
-
-      dm.publishState("1"); // publish iiwa state WORKING
-
-      for (int j = 0; j < dm.drawings.size(); j++){
-        // relocate drawing coordinate according to ridgeback's location
-        ROS_INFO("Relocate drawing coordinate according to ridgeback's pose");
-        dm.drawings[j].relocateDrawingsArb(ridegeback_pose, i);
-
-        // iiwa start drawing
-        ROS_INFO("IIWA Drawing Start");
-        iiwa.drawStrokes(nh, dm.drawings[j], i);
-      }
-
-      // finished iiwa drawing make ridgeback move
-      std::cout << "\n\nIIWA DONE\n\n";
-      dm.publishState("0"); // publish iiwa state DONE
-
-      // wait for ridgeback to finish moving
-      ROS_INFO("Waiting for ridgeback to finish moving");
-      boost::shared_ptr<std_msgs::String const> ridgeback_state;
-      ridgeback_state = ros::topic::waitForMessage<std_msgs::String>("/iiwa_ridgeback_communicaiton/ridgeback/state",nh);
-
-      std::cout << "\n\nRIDGEBACK MOVED\n\n";
-    }
-
-    done = true;
+//    for(int i = 0; i <= dm.range_num ; i++){
+//      // get ridgeback's position and orientation
+//      ROS_INFO("Waiting for ridgeback's position and orientation ...");
+//      boost::shared_ptr<geometry_msgs::Pose const> ridegeback_pose_;
+//      ridegeback_pose_ = ros::topic::waitForMessage<geometry_msgs::Pose>("/iiwa_ridgeback_communicaiton/ridgeback/pose",nh);
+//      geometry_msgs::Pose ridegeback_pose = *ridegeback_pose_;
+//
+//      dm.publishState("1"); // publish iiwa state WORKING
+//
+//      for (int j = 0; j < dm.drawings.size(); j++){
+//        // relocate drawing coordinate according to ridgeback's location
+//        ROS_INFO("Relocate drawing coordinate according to ridgeback's pose");
+//        dm.drawings[j].relocateDrawingsArb(ridegeback_pose, i);
+//
+//        // iiwa start drawing
+//        ROS_INFO("IIWA Drawing Start");
+//        iiwa.drawStrokes(nh, dm.drawings[j], i);
+//      }
+//
+//      // finished iiwa drawing make ridgeback move
+//      std::cout << "\n\nIIWA DONE\n\n";
+//      dm.publishState("0"); // publish iiwa state DONE
+//
+//      // wait for ridgeback to finish moving
+//      ROS_INFO("Waiting for ridgeback to finish moving");
+//      boost::shared_ptr<std_msgs::String const> ridgeback_state;
+//      ridgeback_state = ros::topic::waitForMessage<std_msgs::String>("/iiwa_ridgeback_communicaiton/ridgeback/state",nh);
+//
+//      std::cout << "\n\nRIDGEBACK MOVED\n\n";
+//    }
+//
+//    done = true;
   }
 }
