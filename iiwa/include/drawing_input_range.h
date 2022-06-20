@@ -71,6 +71,7 @@ class DrawingInput {
     // wall related
     void setKDTree();
     void readDrawingFileArb();
+    point_t getQuaternion(point_t &normal);
     std::tuple<double, point_t> getXAndQuaternion(point_t &pt);
     std::tuple<double, point_t> getXAndSurfaceNormal(point_t &pt);
     double getVectorSize(point_t &);

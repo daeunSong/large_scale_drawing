@@ -53,7 +53,7 @@ void MarkerPublisher::initWall() {
   wall_marker.action = visualization_msgs::Marker::ADD;
 
   geometry_msgs::Pose marker_pose;
-  marker_pose.position.x = wall_pose[0] + 0.02;
+  marker_pose.position.x = wall_pose[0];
   marker_pose.position.y = wall_pose[1];// + 0.015;
   marker_pose.position.z = wall_pose[2];
   marker_pose.orientation.x = wall_pose[3];
@@ -62,9 +62,9 @@ void MarkerPublisher::initWall() {
   marker_pose.orientation.w = wall_pose[6];
 
   wall_marker.pose = marker_pose;
-  wall_marker.scale.x = 1.0;
-  wall_marker.scale.y = 1.0;
-  wall_marker.scale.z = 1.0;
+  wall_marker.scale.x = 0.01;
+  wall_marker.scale.y = 0.01;
+  wall_marker.scale.z = 0.01;
 
   wall_marker.color.a = 1.0;
   wall_marker.color.r = 0.933;

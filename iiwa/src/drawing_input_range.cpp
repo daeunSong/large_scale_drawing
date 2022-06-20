@@ -35,6 +35,7 @@ DrawingInput::DrawingInput(const std::string &wall_file_name_, const std::string
   else {
     txt.close();
     readDemoFile();
+//    saveDemoFile();
   }
 
 }
@@ -374,17 +375,38 @@ void DrawingInput::readDemoFile(){
     }
     else { // start reading strokes
       tempSplit = split(line, ' ');
-      drawing_pose.position.x = stod(tempSplit[0]);
-      drawing_pose.position.y = stod(tempSplit[1]);
-      drawing_pose.position.z = stod(tempSplit[2]);
-      drawing_pose.orientation.x = stod(tempSplit[3]);
-      drawing_pose.orientation.y = stod(tempSplit[4]);
-      drawing_pose.orientation.z = stod(tempSplit[5]);
-      drawing_pose.orientation.w = stod(tempSplit[6]);
+      drawing_pose.position.x = stod(tempSplit[0])*0.01 + this->init_drawing_pose.position.x;
+      drawing_pose.position.y = stod(tempSplit[1])*0.01;
+      drawing_pose.position.z = stod(tempSplit[2])*0.01 + this->init_drawing_pose.position.z - 0.15;
+
+      point_t normal {stod(tempSplit[3]), stod(tempSplit[4]), stod(tempSplit[5])};
+      point_t quaternion = getQuaternion(normal);
+
+      drawing_pose.orientation.x = quaternion[0];
+      drawing_pose.orientation.y = quaternion[1];
+      drawing_pose.orientation.z = quaternion[2];
+      drawing_pose.orientation.w = quaternion[3];
       stroke.push_back(drawing_pose);
     }
   }
   txt.close();
+}
+
+point_t DrawingInput::getQuaternion(point_t &sn){
+  Eigen::Vector3d n (-sn[0], -sn[1], -sn[2]);
+  n.normalize();
+
+  Eigen::Vector3d axis = Eigen::Vector3d::UnitZ().cross(n); // sin theta
+  double theta = std::asin(std::min(std::max(axis.norm(),-1.0),1.0)); // theta in radians
+  Eigen::Quaterniond q(Eigen::AngleAxisd(theta, axis));
+
+  point_t orientation;
+  orientation.push_back(q.x());
+  orientation.push_back(q.y());
+  orientation.push_back(q.z());
+  orientation.push_back(q.w());
+
+  return orientation;
 }
 
 // TODO: use Eigen

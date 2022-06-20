@@ -67,12 +67,12 @@ void DrawingMoveit::moveInitPose(){
   // set all the joint values to the init joint position
   this->move_group->setStartStateToCurrentState();
   this->move_group->setJointValueTarget("iiwa_joint_1", 0.0);
-  this->move_group->setJointValueTarget("iiwa_joint_2", 0.435332);
+  this->move_group->setJointValueTarget("iiwa_joint_2", 0.698132);
   this->move_group->setJointValueTarget("iiwa_joint_3", 0.0);
-  this->move_group->setJointValueTarget("iiwa_joint_4", -1.91986);
+  this->move_group->setJointValueTarget("iiwa_joint_4", -1.39626);
   this->move_group->setJointValueTarget("iiwa_joint_5", 0.0);
-  this->move_group->setJointValueTarget("iiwa_joint_6", -0.785399);
-  this->move_group->setJointValueTarget("iiwa_joint_7", 0.0);
+  this->move_group->setJointValueTarget("iiwa_joint_6", 1.0472);
+  this->move_group->setJointValueTarget("iiwa_joint_7", -0.523599);
   success_plan = this->move_group->plan(my_plan);
   if (success_plan == MoveItErrorCode::SUCCESS) {
     this->move_group->execute(my_plan);
@@ -107,9 +107,9 @@ void DrawingMoveit::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strok
   int j = 0;
   double fraction = 0.0;
   this->drawing_color_pub.publish(this->color);
-  for (auto stroke : drawing_strokes.strokes_by_range[range_num]) {
+  for (auto stroke : drawing_strokes.strokes) {
     command_cartesian_position.pose = stroke[0];
-    command_cartesian_position.pose.position.x -= this->backward;
+    command_cartesian_position.pose.position.z += this->backward;
 
     // move to ready position
     linear_path.push_back(command_cartesian_position.pose);
@@ -143,7 +143,7 @@ void DrawingMoveit::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strok
 
     // move backward
     command_cartesian_position.pose = stroke.back();
-    command_cartesian_position.pose.position.x -= this->backward;
+    command_cartesian_position.pose.position.z += this->backward;
     linear_path.push_back(command_cartesian_position.pose);
     fraction = this->move_group->computeCartesianPath(linear_path, this->eef_step, this->jump_threshold, trajectory); // loosen the eef_step as moving backward does not need precision
     my_plan.trajectory_ = trajectory;
