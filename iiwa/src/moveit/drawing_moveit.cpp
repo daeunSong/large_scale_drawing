@@ -109,7 +109,7 @@ void DrawingMoveit::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strok
   this->drawing_color_pub.publish(this->color);
   for (auto stroke : drawing_strokes.strokes) {
     command_cartesian_position.pose = stroke[0];
-    command_cartesian_position.pose.position.z += this->backward;
+//    command_cartesian_position.pose.position.z += this->backward;
 
     // move to ready position
     linear_path.push_back(command_cartesian_position.pose);
@@ -118,6 +118,8 @@ void DrawingMoveit::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strok
     this->move_group->execute(my_plan);  //ros::Duration(0.1).sleep();
     if (fraction < 0.5) ROS_WARN_STREAM("MOVE READY POSITION ERROR");
     linear_path.clear();
+
+    std::cout << "Drawing " << drawing_strokes.color << " " << range_num << "th range, " << j << "th stroke ... " << std::endl;
 
     // move forward
     command_cartesian_position.pose = stroke[0];

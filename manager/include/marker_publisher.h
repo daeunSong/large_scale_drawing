@@ -50,9 +50,11 @@ class MarkerPublisher {
     ros::Subscriber color_sub;
     ros::Subscriber traj_sub;
     ros::Subscriber coord_sub; //
+    ros::Subscriber temp_sub;
 
     void drawCallback(const std_msgs::Bool::ConstPtr& msg);
     void colorCallback(const geometry_msgs::Point::ConstPtr& msg);
     void trajCallback(const geometry_msgs::PoseArray::ConstPtr& msg);
     void coordCallback(const geometry_msgs::Pose::ConstPtr& msg); //
+    void temp(const geometry_msgs::Pose::ConstPtr& msg);
 };

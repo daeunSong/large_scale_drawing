@@ -32,6 +32,7 @@ class DrawingManager {
 
     ros::Publisher ir_pub;
     ros::Publisher marker_pub;
+    ros::Publisher axes_pub;
 
     // MoveGroup
     std::string move_group_name;
@@ -48,6 +49,7 @@ class DrawingManager {
     std::vector<std::string> colors;
 
     void visualizeStrokes(std::vector<Stroke> &strokes);
+    void visualizePose(std::vector<Stroke> &strokes);
     void publishState(std::string state);
 
   private:

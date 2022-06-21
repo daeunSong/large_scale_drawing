@@ -22,6 +22,7 @@ void DrawingManager::initSubscriber() {
 void DrawingManager::initPublisher() {
   ir_pub = nh_.advertise<std_msgs::String>("/iiwa_ridgeback_communicaiton/iiwa/state", 10);
   marker_pub = nh_.advertise<visualization_msgs::Marker>("/target_drawing", 100);
+  axes_pub = nh_.advertise<geometry_msgs::Pose>("/temp", 100);
 }
 
 // Init marker for target drawing
@@ -64,13 +65,24 @@ void DrawingManager::visualizeStrokes(std::vector<Stroke> &strokes){
     marker.header.stamp = ros::Time::now();
     marker.id = id; id++;
     for (int j = 0; j < strokes[i].size(); j++) { // points
+      strokes[i][j].position.z += 0.001;
       marker.points.push_back(strokes[i][j].position);
     }
     marker_pub.publish(marker);
     marker.points.clear();
+    ros::Duration(0.1).sleep();
   }
   ros::Duration(1.0).sleep();
 }
+
+void DrawingManager::visualizePose(std::vector<Stroke> &strokes){
+  int id = 0;
+  for (int i = 0; i < strokes.size(); i ++) {
+    axes_pub.publish(strokes[i][0]);
+    ros::Duration(0.1).sleep();
+  }
+}
+
 
 int main(int argc, char **argv){
   //*********** Initialize ROS
@@ -100,6 +112,7 @@ int main(int argc, char **argv){
     DrawingInput drawing(dm.wall_file_name, dm.drawing_file_name, ch[0], dm.init_drawing_pose, dm.wall_pose);
     dm.drawings.push_back(drawing);
     dm.visualizeStrokes(drawing.strokes);
+    dm.visualizePose(drawing.strokes);
   }
 
   std::cout << dm.init_drawing_pose.position.x << " " << dm.init_drawing_pose.position.y << " " << dm.init_drawing_pose.position.z << "\n";

@@ -22,6 +22,7 @@ void MarkerPublisher::initSubscriber() {
   drawing_sub = nh_.subscribe("/ready_to_draw", 10, &MarkerPublisher::drawCallback, this);
   color_sub = nh_.subscribe("/drawing_color", 10, &MarkerPublisher::colorCallback, this);
   traj_sub = nh_.subscribe("/iiwa_ridgeback_communicaiton/trajectory", 100, &MarkerPublisher::trajCallback, this);
+  temp_sub = nh_.subscribe("/temp", 100, &MarkerPublisher::temp, this);
 //  coord_sub = nh_.subscribe("/coord", 10, &MarkerPublisher::coordCallback, this); //
 }
 
@@ -103,6 +104,14 @@ void MarkerPublisher::trajCallback(const geometry_msgs::PoseArray::ConstPtr& msg
     this->visual_tools_->publishAxis(pose);
   }
   this->visual_tools_->trigger();
+}
+
+// TEMP
+void MarkerPublisher::temp(const geometry_msgs::Pose::ConstPtr& msg){
+  geometry_msgs::Pose pose = *msg;
+  this->visual_tools_->publishAxis(pose);
+  this->visual_tools_->trigger();
+  std::cout << "AXIS PUBLISHED" << std::endl;
 }
 
 // publish axis
