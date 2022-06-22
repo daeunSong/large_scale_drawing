@@ -65,7 +65,7 @@ void DrawingManager::visualizeStrokes(std::vector<Stroke> &strokes){
     marker.header.stamp = ros::Time::now();
     marker.id = id; id++;
     for (int j = 0; j < strokes[i].size(); j++) { // points
-      strokes[i][j].position.z += 0.001;
+      strokes[i][j].position.x -= 0.001;
       marker.points.push_back(strokes[i][j].position);
     }
     marker_pub.publish(marker);
@@ -115,7 +115,7 @@ int main(int argc, char **argv){
     dm.visualizePose(drawing.strokes);
   }
 
-  std::cout << dm.init_drawing_pose.position.x << " " << dm.init_drawing_pose.position.y << " " << dm.init_drawing_pose.position.z << "\n";
+//  std::cout << dm.init_drawing_pose.position.x << " " << dm.init_drawing_pose.position.y << " " << dm.init_drawing_pose.position.z << "\n";
 
   /* Ridgeback No Need
   //*********** Wait for ridgeback
