@@ -30,6 +30,9 @@ ADD_LIBRARY(drawingInput
 ADD_LIBRARY(drawingMoveit
   iiwa/src/moveit/drawing_moveit.cpp
 )
+ADD_LIBRARY(drawingIIWA
+  iiwa/src/drawing_iiwa.cpp
+)
 
 #add_message_files(
 #  FILES
