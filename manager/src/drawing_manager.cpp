@@ -93,16 +93,23 @@ int main(int argc, char **argv){
 
   //*********** ROS spinner.
   ros::AsyncSpinner spinner(1);
+  // Loop with 100 Hz rate
+  ros::Rate loop_rate(100);
   spinner.start();
 
   //*********** Init IIWA
-  DrawingMoveit iiwa(nh, dm.move_group_name, dm.planner_id, dm.ee_link, dm.reference_frame);
+  DrawingIIWA iiwa(nh, dm.ee_link, dm.reference_frame);
   ros::Duration(1.0).sleep();
 
+  //*********** detect wall
+  geometry_msgs::Point wall_point;
+  wall_point = iiwa.detectWall(nh);
+
   //*********** init drawing pose
-  dm.init_drawing_pose = iiwa.getCurrentPose().pose;
-//  dm.init_drawing_pose.position.x += 0.03;   // 3cm depper
-//  dm.init_drawing_pose.position.z += 0.05;  // move up
+  dm.init_drawing_pose = iiwa.getCurrentPose().poseStamped.pose;
+  dm.init_drawing_pose.position.x = wall_point.x + 0.1;
+  dm.init_drawing_pose.position.y = wall_point.y;
+  dm.init_drawing_pose.position.z = wall_point.z;
 
   //*********** Init Drawing
   for (int i = 0; i < dm.colors.size(); i++){
@@ -134,6 +141,7 @@ int main(int argc, char **argv){
   //*********** Drawing and moving
   dm.range_num = dm.drawings[0].strokes_by_range.size();
   bool done = false;
+  int stroke_ = 0;
 
   while(ros::ok() && !done){
     for(int i = 0; i <= dm.range_num ; i++){
@@ -152,7 +160,7 @@ int main(int argc, char **argv){
 
         // iiwa start drawing
         ROS_INFO("IIWA Drawing Start");
-        iiwa.drawStrokes(nh, dm.drawings[j], i);
+        iiwa.drawStrokes(nh, dm.drawings[j], i, stroke_);
       }
 
 //      // finished iiwa drawing make ridgeback move
@@ -166,7 +174,7 @@ int main(int argc, char **argv){
 //
 //      std::cout << "\n\nRIDGEBACK MOVED\n\n";
     }
-
+    iiwa.moveInitPose();
     done = true;
   }
 }

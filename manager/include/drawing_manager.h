@@ -1,9 +1,10 @@
-#include "drawing_moveit.h"
+#include "drawing_iiwa.h"
 
 #include <ros/ros.h>
 #include <ros/package.h>
 
 #include <geometry_msgs/Pose.h>
+#include <geometry_msgs/Point.h>
 #include <std_msgs/String.h>
 #include <std_msgs/Float64MultiArray.h>
 #include "boost/shared_ptr.hpp"

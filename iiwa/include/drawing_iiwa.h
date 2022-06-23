@@ -58,6 +58,7 @@ class DrawingIIWA{
     int moveInitPose();
     int moveTransportPose();
     iiwa_msgs::CartesianPose getCurrentPose();
+    geometry_msgs::Point detectWall(ros::NodeHandle &nh);
     void drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strokes, int range_num, int stroke_num);
 
     void sleepForMotion(iiwa_ros::service::TimeToDestinationService& iiwa, const double maxSleepTime);

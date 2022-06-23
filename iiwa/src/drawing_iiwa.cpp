@@ -218,6 +218,34 @@ bool DrawingIIWA::setEndpointFrame(ros::NodeHandle& nh, std::string frameId="iiw
   return true;
 }
 
+geometry_msgs::Point DrawingIIWA::detectWall(ros::NodeHandle &nh){
+  setEndpointFrame(nh, "tool_link_ee");
+  iiwa_msgs::CartesianPose wall_pose, current_pose;
+  geometry_msgs::Point wall_point;
+  current_pose = getCurrentPose();
+
+  // Move forward to detect the wall
+  ROS_INFO("Start detecting the wall");
+  iiwa_msgs::MoveAlongSplineGoal splineMotion;
+  splineMotion.spline.segments.push_back(getSplineSegment(current_pose.poseStamped.pose, iiwa_msgs::SplineSegment::LIN));
+  current_pose.poseStamped.pose.position.x += 0.5;
+  splineMotion.spline.segments.push_back(getSplineSegment(current_pose.poseStamped.pose, iiwa_msgs::SplineSegment::LIN));
+
+  // Execute motion
+  splineMotionClient.sendGoal(splineMotion);
+  splineMotionClient.waitForResult();
+  splineMotion.spline.segments.clear();
+
+  ros::Duration(2).sleep(); // wait for 2 sec
+  wall_pose = iiwa_pose_state.getPose();
+
+  wall_point.x = wall_pose.poseStamped.pose.position.x;
+  wall_point.y = wall_pose.poseStamped.pose.position.y;
+  wall_point.z = wall_pose.poseStamped.pose.position.z;
+
+  return wall_point;
+}
+
 void DrawingIIWA::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strokes, int range_num, int stroke_num){
 
   // drawing commands related

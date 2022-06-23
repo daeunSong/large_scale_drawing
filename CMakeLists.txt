@@ -6,7 +6,8 @@ project(large_scale_drawing)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   iiwa_ros
-  moveit_core 
+  iiwa_msgs
+  moveit_core
   moveit_ros_planning
   moveit_ros_planning_interface
   moveit_visual_tools
@@ -43,7 +44,7 @@ ADD_LIBRARY(drawingIIWA
 #generate_messages(
 #  DEPENDENCIES
 #  std_msgs
-#  geometry_msgs 
+#  geometry_msgs
 #)
 
 catkin_package()
@@ -55,15 +56,14 @@ catkin_package()
 
 add_executable(drawing_manager manager/src/drawing_manager.cpp)
 add_dependencies(drawing_manager iiwa_msgs_generate_messages_cpp)
-target_link_libraries(drawing_manager drawingInput drawingMoveit ${catkin_LIBRARIES}) #
+target_link_libraries(drawing_manager drawingInput drawingIIWA ${catkin_LIBRARIES}) #
 
-add_executable(marker_publisher manager/src/marker_publisher.cpp)
-add_dependencies(marker_publisher iiwa_msgs_generate_messages_cpp)
-target_link_libraries(marker_publisher ${catkin_LIBRARIES})
+#add_executable(marker_publisher manager/src/marker_publisher_tracker.cpp)
+#add_dependencies(marker_publisher iiwa_msgs_generate_messages_cpp)
+#target_link_libraries(marker_publisher ${catkin_LIBRARIES})
 
 # real
 #add_executable(drawing_iiwa iiwa/src/drawing_iiwa.cpp)
 #add_dependencies(drawing_iiwa iiwa_msgs_generate_messages_cpp)
 #target_link_libraries(drawing_iiwa drawingInput ${catkin_LIBRARIES}) #
-
 
