@@ -382,17 +382,17 @@ void DrawingInput::readDemoFile(){
       Eigen::Vector4d point (stod(tempSplit[0])*0.01, stod(tempSplit[1])*0.01, stod(tempSplit[2])*0.01, 1);
       point = mat * point;
 
-      drawing_pose.position.x = point[0] + 0.20 - 0.002;// + 0.2;
+      drawing_pose.position.x = point[0] + 0.103;// - 0.002;// + 0.2;
       drawing_pose.position.y = point[1];
       drawing_pose.position.z = point[2];// - 0.15;
 
       point_t normal {stod(tempSplit[3]), stod(tempSplit[4]), stod(tempSplit[5])};
       point_t quaternion = getQuaternion(normal);
 
-      drawing_pose.orientation.x = quaternion[0];
-      drawing_pose.orientation.y = quaternion[1];
-      drawing_pose.orientation.z = quaternion[2];
-      drawing_pose.orientation.w = quaternion[3];
+      drawing_pose.orientation.x = this->init_drawing_pose.orientation.x;//quaternion[0];
+      drawing_pose.orientation.y = this->init_drawing_pose.orientation.y;//quaternion[1];
+      drawing_pose.orientation.z = this->init_drawing_pose.orientation.z;//quaternion[2];
+      drawing_pose.orientation.w = this->init_drawing_pose.orientation.w;//quaternion[3];
       stroke.push_back(drawing_pose);
     }
   }

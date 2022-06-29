@@ -18,6 +18,8 @@
 #include <iiwa_ros/iiwa_ros.hpp>
 #include <iiwa_ros/conversions.hpp>
 
+#include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/Pose.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/Float64.h>
 #include <cmath>
@@ -52,7 +54,11 @@ class DrawingIIWA{
 //    actionlib::SimpleActionClient<iiwa_msgs::MoveAlongSplineAction> && splineMotionClient =
 //            actionlib::SimpleActionClient<iiwa_msgs::MoveAlongSplineAction>("/iiwa/action/move_along_spline", true);
 
+    ros::Subscriber state_sub;
+    geometry_msgs::PoseStamped iiwa_state;
+
     iiwa_msgs::CartesianPose init_pose;
+    geometry_msgs::Pose init_pose_;
 
     int init(ros::NodeHandle &nh, std::string ee_link_);
     int moveInitPose();
@@ -60,6 +66,8 @@ class DrawingIIWA{
     iiwa_msgs::CartesianPose getCurrentPose();
     geometry_msgs::Point detectWall(ros::NodeHandle &nh);
     void drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strokes, int range_num, int stroke_num);
+
+    void stateCallback(const iiwa_msgs::CartesianPose::ConstPtr& msg);
 
     void sleepForMotion(iiwa_ros::service::TimeToDestinationService& iiwa, const double maxSleepTime);
     iiwa_msgs::SplineSegment getSplineSegment (geometry_msgs::Pose waypoint_pose, int type);

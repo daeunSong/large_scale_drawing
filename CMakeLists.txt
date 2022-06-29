@@ -5,6 +5,7 @@ project(large_scale_drawing)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
+  rosbag
   iiwa_ros
   iiwa_msgs
   moveit_core
@@ -67,3 +68,8 @@ target_link_libraries(drawing_manager drawingInput drawingIIWA ${catkin_LIBRARIE
 #add_dependencies(drawing_iiwa iiwa_msgs_generate_messages_cpp)
 #target_link_libraries(drawing_iiwa drawingInput ${catkin_LIBRARIES}) #
 
+# rosbag
+
+add_executable(read_bag data/bag/read_bag.cpp)
+add_dependencies(read_bag iiwa_msgs_generate_messages_cpp)
+target_link_libraries(read_bag ${catkin_LIBRARIES})

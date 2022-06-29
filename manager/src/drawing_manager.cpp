@@ -107,7 +107,7 @@ int main(int argc, char **argv){
 
   //*********** init drawing pose
   dm.init_drawing_pose = iiwa.getCurrentPose().poseStamped.pose;
-  dm.init_drawing_pose.position.x = wall_point.x + 0.1;
+  dm.init_drawing_pose.position.x = wall_point.x;// + 0.1;
   dm.init_drawing_pose.position.y = wall_point.y;
   dm.init_drawing_pose.position.z = wall_point.z;
 
@@ -139,7 +139,7 @@ int main(int argc, char **argv){
   */
 
   //*********** Drawing and moving
-  dm.range_num = dm.drawings[0].strokes_by_range.size();
+  dm.range_num = 0;//dm.drawings[0].strokes_by_range.size();
   bool done = false;
   int stroke_ = 0;
 

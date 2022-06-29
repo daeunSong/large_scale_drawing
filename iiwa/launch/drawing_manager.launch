@@ -1,12 +1,9 @@
 <launch>
-  <!-- Parameters to pass to the ROS node -->
-  <arg name="move_group" default="manipulator"/>
-  <arg name="ee_link" default="iiwa_link_ee"/>
-  <!-- Here we call the ROS node we have written, with the parameters on top   -->
-  <node name="drawing_manager" pkg="large_scale_drawing" type="drawing_manager" respawn="false" output="screen">
-    <param name="move_group" value="$(arg move_group)"/>
-    <param name="ee_link" value="$(arg ee_link)"/>
-  </node>
+  <!-- Parameters from the file -->
+  <rosparam file="$(find large_scale_drawing)/data/config/half_sphere_grid.config" />
+  <param name="/iiwa/toolName" type="string" value="tool" />
+
+<!--    --><!-- iiwa line -->
+<!--   <node name="drawing_manager" pkg="large_scale_drawing" type="drawing_manager" respawn="false" output="screen" /> -->
 
 </launch>
-

@@ -10,9 +10,15 @@ DrawingIIWA::DrawingIIWA(ros::NodeHandle &nh, std::string ee_link_, std::string 
   splineMotionClient.waitForServer();
   int state = DrawingIIWA::init(nh, ee_link_);
 
+  state_sub = nh.subscribe("/iiwa/state/CartesianPose", 10, &DrawingIIWA::stateCallback, this);
+
   // Move robot to the initial pose
   this->moveInitPose();
   this->init_pose = this->getCurrentPose();
+}
+
+void DrawingIIWA::stateCallback(const iiwa_msgs::CartesianPose::ConstPtr& msg){
+  this->iiwa_state = msg->poseStamped;
 }
 
 int DrawingIIWA::init(ros::NodeHandle &nh, std::string ee_link_){
@@ -43,11 +49,11 @@ int DrawingIIWA::init(ros::NodeHandle &nh, std::string ee_link_){
 int DrawingIIWA::moveInitPose( ){
   iiwa_msgs::MoveToJointPositionGoal jointPositionGoal;
   jointPositionGoal.joint_position.position.a1 =  0.00;
-  jointPositionGoal.joint_position.position.a2 =  0.3228859; // 18.5d// 0.435332;
+  jointPositionGoal.joint_position.position.a2 =  0.436332; // 25d// 0.435332;
   jointPositionGoal.joint_position.position.a3 =  0.00;
-    jointPositionGoal.joint_position.position.a4 = -2.05948852; // -118d // -1.91986;
+  jointPositionGoal.joint_position.position.a4 = -1.91986; // -110d // -1.91986;
   jointPositionGoal.joint_position.position.a5 =  0.00;
-  jointPositionGoal.joint_position.position.a6 = -0.759218225;// -43.5// -0.785399;
+  jointPositionGoal.joint_position.position.a6 = -0.785398;// -45// -0.785399;
   jointPositionGoal.joint_position.position.a7 = 1.04;//-0.523599;
   // Send goal to action server
   jointPositionClient.sendGoal(jointPositionGoal);
@@ -63,6 +69,9 @@ int DrawingIIWA::moveInitPose( ){
     ROS_ERROR("Action execution failed - exiting...");
     return 0;
   }
+
+  this->init_pose_ = getCurrentPose().poseStamped.pose;
+
   return 1;
 }
 
@@ -223,12 +232,13 @@ geometry_msgs::Point DrawingIIWA::detectWall(ros::NodeHandle &nh){
   iiwa_msgs::CartesianPose wall_pose, current_pose;
   geometry_msgs::Point wall_point;
   current_pose = getCurrentPose();
+  double x_ = current_pose.poseStamped.pose.position.x;
 
   // Move forward to detect the wall
   ROS_INFO("Start detecting the wall");
   iiwa_msgs::MoveAlongSplineGoal splineMotion;
   splineMotion.spline.segments.push_back(getSplineSegment(current_pose.poseStamped.pose, iiwa_msgs::SplineSegment::LIN));
-  current_pose.poseStamped.pose.position.x += 0.5;
+  current_pose.poseStamped.pose.position.x += 0.15;//0.15;
   splineMotion.spline.segments.push_back(getSplineSegment(current_pose.poseStamped.pose, iiwa_msgs::SplineSegment::LIN));
 
   // Execute motion
@@ -237,11 +247,23 @@ geometry_msgs::Point DrawingIIWA::detectWall(ros::NodeHandle &nh){
   splineMotion.spline.segments.clear();
 
   ros::Duration(2).sleep(); // wait for 2 sec
-  wall_pose = iiwa_pose_state.getPose();
+  wall_pose = getCurrentPose();
 
   wall_point.x = wall_pose.poseStamped.pose.position.x;
   wall_point.y = wall_pose.poseStamped.pose.position.y;
   wall_point.z = wall_pose.poseStamped.pose.position.z;
+
+  //back off
+  splineMotion.spline.segments.push_back(getSplineSegment(wall_pose.poseStamped.pose, iiwa_msgs::SplineSegment::LIN));
+  wall_pose.poseStamped.pose.position.x = x_;
+  splineMotion.spline.segments.push_back(getSplineSegment(wall_pose.poseStamped.pose, iiwa_msgs::SplineSegment::LIN));
+
+  // Execute motion
+  ROS_INFO("Back off");
+  splineMotionClient.sendGoal(splineMotion);
+  splineMotionClient.waitForResult();
+  splineMotion.spline.segments.clear();
+  ros::Duration(2).sleep(); // wait for 2 sec
 
   return wall_point;
 }
@@ -255,13 +277,13 @@ void DrawingIIWA::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strokes
   iiwa_msgs::CartesianPose command_cartesian_position;
   command_cartesian_position = this->init_pose;
   iiwa_msgs::MoveAlongSplineGoal splineMotion;
-  int num_strokes = drawing_strokes.strokes_by_range[range_num].size();
+  int num_strokes = drawing_strokes.strokes.size();
 
 //  for (auto stroke : drawing_strokes.strokes_by_range[range_num]) {
-  for (int i = stroke_num; i < drawing_strokes.strokes_by_range[range_num].size() ; i++){
+  for (int i = stroke_num; i < drawing_strokes.strokes.size() ; i++){
 //  for (int i = stroke_num; i < int(drawing_strokes.strokes_by_range[range_num].size()/50) ; i++){
-    std::vector<geometry_msgs::Pose> stroke = drawing_strokes.strokes_by_range[range_num][i];
-    iiwa_control_mode.setPositionControlMode();
+    std::vector<geometry_msgs::Pose> stroke = drawing_strokes.strokes[i];
+//    iiwa_control_mode.setPositionControlMode();
     command_cartesian_position.poseStamped.pose = stroke[0];
 //    command_cartesian_position.poseStamped.pose.position.x -= BACKWARD/2;
     setEndpointFrame(nh, "tool_ready_link_ee");
@@ -277,8 +299,9 @@ void DrawingIIWA::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strokes
     ros::Duration(0.5).sleep();
 
 //    // draw
-    setEndpointFrame(nh, "tool_link_ee");
+    setEndpointFrame(nh, "tool_draw_link_ee");
     std::cout << "Drawing " << drawing_strokes.color << " " << range_num << "th range, " << i << "th stroke out of " << num_strokes << " strokes ... " << std::endl;
+    std::cout << "START: " << iiwa_state.header.stamp << "\n";
 
     splineMotion.spline.segments.push_back(this->getSplineSegment(stroke[0], iiwa_msgs::SplineSegment::LIN));
     for (int j = 1 ; j < stroke.size(); j++)
@@ -287,11 +310,14 @@ void DrawingIIWA::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strokes
     splineMotionClient.waitForResult();
     splineMotion.spline.segments.clear();
 
+    std::cout << "END: " << iiwa_state.header.stamp << "\n";
+
     // move backward
     setEndpointFrame(nh, "tool_back_link_ee");
     iiwa_control_mode.setPositionControlMode();
     command_cartesian_position.poseStamped.pose = stroke.back();
     splineMotion.spline.segments.push_back(this->getSplineSegment(stroke.back(), iiwa_msgs::SplineSegment::LIN));
+//    splineMotion.spline.segments.push_back(this->getSplineSegment(this->init_pose_, iiwa_msgs::SplineSegment::LIN));
     splineMotionClient.sendGoal(splineMotion);
     splineMotionClient.waitForResult();
     splineMotion.spline.segments.clear();
@@ -299,6 +325,7 @@ void DrawingIIWA::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strokes
 //    iiwa_pose_command.setPose(command_cartesian_position.poseStamped);
 //    sleepForMotion(iiwa_time_destination, 3.0);
     ros::Duration(0.5).sleep();
+    moveInitPose();
   }
   moveTransportPose();
 
