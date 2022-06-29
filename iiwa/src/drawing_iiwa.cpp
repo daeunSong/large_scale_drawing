@@ -265,6 +265,8 @@ geometry_msgs::Point DrawingIIWA::detectWall(ros::NodeHandle &nh){
   splineMotion.spline.segments.clear();
   ros::Duration(2).sleep(); // wait for 2 sec
 
+  std::cout << wall_point << std::endl;
+
   return wall_point;
 }
 
@@ -278,6 +280,8 @@ void DrawingIIWA::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strokes
   command_cartesian_position = this->init_pose;
   iiwa_msgs::MoveAlongSplineGoal splineMotion;
   int num_strokes = drawing_strokes.strokes.size();
+
+  std::ofstream outfile(ros::package::getPath("large_scale_drawing") + "/data/bag/time_stamp.txt");
 
 //  for (auto stroke : drawing_strokes.strokes_by_range[range_num]) {
   for (int i = stroke_num; i < drawing_strokes.strokes.size() ; i++){
@@ -301,7 +305,7 @@ void DrawingIIWA::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strokes
 //    // draw
     setEndpointFrame(nh, "tool_draw_link_ee");
     std::cout << "Drawing " << drawing_strokes.color << " " << range_num << "th range, " << i << "th stroke out of " << num_strokes << " strokes ... " << std::endl;
-    std::cout << "START: " << iiwa_state.header.stamp << "\n";
+    outfile << i << " " << iiwa_state.header.stamp << " ";
 
     splineMotion.spline.segments.push_back(this->getSplineSegment(stroke[0], iiwa_msgs::SplineSegment::LIN));
     for (int j = 1 ; j < stroke.size(); j++)
@@ -310,7 +314,7 @@ void DrawingIIWA::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strokes
     splineMotionClient.waitForResult();
     splineMotion.spline.segments.clear();
 
-    std::cout << "END: " << iiwa_state.header.stamp << "\n";
+    outfile << iiwa_state.header.stamp << "\n";
 
     // move backward
     setEndpointFrame(nh, "tool_back_link_ee");
@@ -327,7 +331,8 @@ void DrawingIIWA::drawStrokes(ros::NodeHandle &nh, DrawingInput &drawing_strokes
     ros::Duration(0.5).sleep();
     moveInitPose();
   }
-  moveTransportPose();
+//  moveTransportPose();
+  outfile.close();
 
 }
 
