@@ -6,9 +6,13 @@
 
 This repository provides ROS-based simulation and visualization on a **large-scale robotic drawing system** using our customed, integrated robots, ridgeback mobile platform with KUKA LBR iiwa 7 R800 manipulator.
 
-The instruction below assumes that you have already installed ROS. ([ref](http://wiki.ros.org/melodic/Installation/Ubuntu))
+It partially contains the implementation of our paper "[SSK: Robotic Pen-Art System for Large, Nonplanar Canvas](http://graphics.ewha.ac.kr/ssk/)", published in IEEE T-RO. 
 
-## ⚠️ ROS-Python3 Installation
+## Dependencies
+
+- [ROS Melodic](http://wiki.ros.org/melodic/Installation/Ubuntu) with Python3
+
+### ⚠️ ROS-Python3 Installation
 
 This might break your ROS workspace if you have your own ROS workspace running with Python2.
 
@@ -105,3 +109,17 @@ rosrun large_scale_drawing ridgeback.py
 
 To change the drawing input, change the name of the configuration file in [here](https://github.com/daeunSong/large_scale_drawing/blob/31b85f34acbd624ab041da2da8223dcf6439c6a2/iiwa/launch/prep_drawing_moveit.launch#L8). Please refer to the details of the **config file** in [here](https://github.com/daeunSong/large_scale_drawing/tree/debug/data/config) and the **input drawing** file in [here](https://github.com/daeunSong/large_scale_drawing/tree/debug/data/input).
 
+## Citation
+IEEE T-RO 2023, "[SSK: Robotic Pen-Art System for Large, Nonplanar Canvas](http://graphics.ewha.ac.kr/ssk/)"
+```
+@ARTICLE{10114055,
+    author={Song, Daeun and Park, Jiyoon and Kim, Young J.},
+    journal={IEEE Transactions on Robotics}, 
+    title={SSK: Robotic Pen-Art System for Large, Nonplanar Canvas}, 
+    year={2023},
+    volume={39},
+    number={4},
+    pages={3106-3119},
+    doi={10.1109/TRO.2023.3268585}
+}
+```
