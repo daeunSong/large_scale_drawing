@@ -1,4 +1,4 @@
-# large-scale-drawing
+# SSK: Robotic Pen-Art System for Large, Nonplanar Canvas
 
 *Tested on **Ubuntu 18.04** with **ROS Melodic**.*
 
@@ -121,5 +121,27 @@ IEEE T-RO 2023, "[SSK: Robotic Pen-Art System for Large, Nonplanar Canvas](http:
     number={4},
     pages={3106-3119},
     doi={10.1109/TRO.2023.3268585}
+}
+```
+IEEE ICRA 2019, "[Distortion-free Robotic Surface-drawing using Conformal Mapping](https://ieeexplore.ieee.org/abstract/document/8794034)"
+```
+@inproceedings{song2019distortion,
+    title={Distortion-free Robotic Surface-drawing using Conformal Mapping},
+    author={Song, Daeun and Kim, Young J},
+    booktitle={2019 International Conference on Robotics and Automation (ICRA)},
+    pages={627--633},
+    year={2019},
+    organization={IEEE}
+}
+```
+IEEE ICRA 2018, "[Artistic Pen Drawing on an Arbitrary Surface using an Impedance-controlled Robot](https://ieeexplore.ieee.org/abstract/document/8461084)":
+```
+@inproceedings{song2018artistic,
+    title={Artistic pen drawing on an arbitrary surface using an impedance-controlled robot},
+    author={Song, Daeun and Lee, Taekhee and Kim, Young J},
+    booktitle={2018 IEEE International Conference on Robotics and Automation (ICRA)},
+    pages={4085--4090},
+    year={2018},
+    organization={IEEE}
 }
 ```
