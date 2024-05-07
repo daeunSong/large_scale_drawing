@@ -8,30 +8,6 @@ This repository provides ROS-based simulation and visualization on a **large-sca
 
 It partially contains the implementation of our paper "[SSK: Robotic Pen-Art System for Large, Nonplanar Canvas](http://graphics.ewha.ac.kr/ssk/)", published in IEEE T-RO. 
 
-## Dependencies
-
-- [ROS Melodic](http://wiki.ros.org/melodic/Installation/Ubuntu) with Python3
-
-### ⚠️ ROS-Python3 Installation
-
-This might break your ROS workspace if you have your own ROS workspace running with Python2.
-
-1. Install ROS-Python3 related packages
-
-```shell
-sudo apt install python3-pip python3-all-dev python3-rospkg
-```
-
-2. Re-install ROS. Change *Melodic* with your version
-
-```shell
-sudo apt install ros-melodic-desktop-full --fix-missing 
-```
-
-3. Set your ROS version to Python3
-```shell
-echo "export ROS_PYTHON_VERSION=3" >> ~/.bashrc
-```
 
 ## Build and Compile
 
@@ -54,8 +30,8 @@ git clone https://github.com/daeunSong/ridgeback_iiwa_integration.git
 
 3. Install the dependencies:
 ```shell
-sudo apt-get install python3-catkin-tools
-pip3 install numpy matplotlib
+sudo apt-get install python-catkin-tools
+pip install numpy matplotlib
 ```
 ```sh
 cd ..
